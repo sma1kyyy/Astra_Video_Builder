@@ -1,33 +1,25 @@
-# Данный файл - шаблонная конфигурация CI/CD конвейера. 
-# Некоторые шаблоны требуют предварительной настройки перед запуском.
-#
-# Подробнее о синтаксисе можно узнать в документации:
-# https://docs.gitflic.ru/cicd/gitflic-ci-yaml
+# CI/CD конфигурация для проекта генерации демонстрационных роликов
+# Используется Go-окружение как универсальный CI-раннер
+# Основной код проекта реализован на Python
 
-image: golang:latest
+image: golang:1.22
 
 stages:
   - test
   - build
-  - deploy
 
-format:
+test:
   stage: test
   script:
-    - go fmt $(go list ./... | grep -v /vendor/)
-    - go vet $(go list ./... | grep -v /vendor/)
-    - go test -race $(go list ./... | grep -v /vendor/)
+    - echo "CI stage: test"
+    - go version
+    - echo "Проверка наличия исходного кода проекта"
+    - test -d src
+    - test -f src/main.py
+    - test -d scripts
 
-compile:
+build:
   stage: build
   script:
-    - mkdir -p mybinaries
-    - go build -o mybinaries ./...
-  artifacts:
-    paths:
-      - mybinaries
-
-deploy:
-  stage: deploy
-script: 
-  - echo "Развертывание проекта"
+    - echo "CI stage: build"
+    - echo "Сборка не требуется — Python-проект на этапе MVP"
