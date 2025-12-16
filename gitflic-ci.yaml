@@ -1,5 +1,5 @@
 # CI/CD конфигурация для проекта генерации демонстрационных роликов
-# Используется Go-окружение как универсальный CI-раннер
+# Используется Go-образ как универсальный CI-раннер
 # Основной код проекта реализован на Python
 
 image: golang:1.22
@@ -11,15 +11,15 @@ stages:
 test:
   stage: test
   script:
-    - echo "CI stage: test"
-    - go version
-    - echo "Проверка наличия исходного кода проекта"
-    - test -d src
-    - test -f src/main.py
-    - test -d scripts
+    - 'echo CI stage test'
+    - 'go version'
+    - 'echo Проверка структуры проекта'
+    - 'test -d src'
+    - 'test -f src/main.py'
+    - 'test -d scripts'
 
 build:
   stage: build
   script:
-    - echo "CI stage: build"
-    - echo "Сборка не требуется — Python-проект на этапе MVP"
+    - 'echo CI stage build'
+    - 'echo Сборка не требуется на этапе MVP'
