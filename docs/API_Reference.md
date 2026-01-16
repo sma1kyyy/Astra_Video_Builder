@@ -1,0 +1,1 @@
+описание CLI команд и REST API endpoints (если применимо)

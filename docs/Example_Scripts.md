@@ -1,0 +1,1 @@
+5-6 готовых примеров скриптов (3 для Live Recording, 3 для Screenshot Mode)
