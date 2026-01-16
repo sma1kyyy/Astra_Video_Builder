@@ -1,9 +1,11 @@
+from src.parser import parse
+
 def main():
     print("Hello from astra-stipendiya-generirovanie-demonstracionnyh-rolikov-s-pomoshchu-skriptov!")
 
 
 if __name__ == "__main__":
-    main()
+    video = parse("test/test_script.yaml")
 
 # from script_parser import load_script
 # from timeline_builder import build_timeline

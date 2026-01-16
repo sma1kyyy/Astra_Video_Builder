@@ -12,3 +12,6 @@ Taskfile.yaml
 
 # Virtual environments
 .venv
+
+# Other
+test/

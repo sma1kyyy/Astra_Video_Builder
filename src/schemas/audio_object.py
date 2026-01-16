@@ -11,3 +11,4 @@ class AudioObject(AddableObject):
         super().__init__(wait, duration)
         self.path = path
         self._from = _from
+        self.duration = duration

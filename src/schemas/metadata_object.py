@@ -9,7 +9,7 @@ class MetadataObject:
         cursor=True,
         fps=30
     ):
-        self.tile = title
+        self.title = title
         self.resolution = resolution
         self.description = description
         self.language = language
