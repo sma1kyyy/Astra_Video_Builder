@@ -29,5 +29,5 @@ git clone https://github.com/DsRase/AstraProject.git
 5. [Руководство режима Live Recording](docs/Live_Recording_Mode_Guide.md)
 6. [Руководство Screenshot Mode](docs/Screenshot_Mode_Guide.md)
 7. [Руководство по оптимизации](docs/Performance_Tuning.md)
-8. [Руководство по написанию YAML-скриптов](docs/Script%20_Format_Specification.md)
+8. [Руководство по написанию YAML-скриптов](docs/Script_Format_Specification.md)
 9. [FAQ](docs/Troubleshooting_Guide.md)
