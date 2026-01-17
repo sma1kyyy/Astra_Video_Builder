@@ -1,6 +1,6 @@
 class ObjectIdIsntValid(Exception):
     """Исключение для обработки ситуаций, в которых в параметре scenes названия объектов неправильные."""
-    def __init__(self, attr: str | None):
+    def __init__(self, attr: str | None = None):
         """В attr передаётся название неправильной сцены."""
         extra_info = ""
         if attr:

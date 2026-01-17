@@ -1,6 +1,6 @@
 class NoRequiredAttribute(Exception):
     """Исключение для обработки ситуаций, в которых в передаваемом yaml-скрипте отсутствует один из обязательных параметров."""
-    def __init__(self, attr: str | None):
+    def __init__(self, attr: str | None = None):
         """В attr передаётся название пропущенного аттрибута."""
         extra_info = ""
         if attr:

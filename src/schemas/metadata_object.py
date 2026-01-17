@@ -1,4 +1,6 @@
-class MetadataObject:
+from src.schemas.ComponentObject import ComponentObject
+
+class MetadataObject(ComponentObject):
     def __init__(
         self,
         title: str,

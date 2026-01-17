@@ -1,6 +1,6 @@
 class ExtraAttributes(Exception):
     """Исключение для обработки ситуаций, в которых в передаваемом yaml-скрипте имеются параметры, которых быть не должно."""
-    def __init__(self, attr: str | None):
+    def __init__(self, attr: str | None = None):
         """В attr передаётся название лишнего аттрибута."""
         extra_info = ""
         if attr:

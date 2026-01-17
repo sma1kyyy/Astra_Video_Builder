@@ -1,4 +1,6 @@
-class ActionObject:
+from src.schemas.ComponentObject import ComponentObject
+
+class ActionObject(ComponentObject):
     def __init__(
         self,
         type: str,

@@ -5,7 +5,7 @@ def main():
 
 
 if __name__ == "__main__":
-    video = parse("test/test_script.yaml")
+    print(parse("test/test_script.yaml"))
 
 # from script_parser import load_script
 # from timeline_builder import build_timeline
