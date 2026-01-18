@@ -1,5 +1,5 @@
 from src.parser import parse
-from src.screen_recorder import start_record
+from src.screen_recorder import start_record, stop_record
 from src.browser_engine import start_actions
 
 def main():
@@ -8,9 +8,10 @@ def main():
 
 if __name__ == "__main__":
     video = parse("test/test.yaml")
-    # start_record(video.metadata)
+    process = start_record(video.metadata)
     for scene in video.scenes:
         start_actions(scene.actions)
+    stop_record(process)
 
 # from script_parser import load_script
 # from timeline_builder import build_timeline

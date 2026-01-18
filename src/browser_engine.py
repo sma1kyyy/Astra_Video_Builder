@@ -26,3 +26,8 @@ def start_actions(actions: List[ActionObject]):
         match(action.type):
             case "navigate": driver.get(action.url)
             case "wait": sleep(action.duration) # пока временное решение. Оно блокирует поток выполнения
+            case "click":
+                splitter = action.selector.split("_")
+                tag = splitter[0]
+                params = splitter[1:]
+                driver.find_element("xpath", f"//{tag}[{" and ".join(params)}]").click()

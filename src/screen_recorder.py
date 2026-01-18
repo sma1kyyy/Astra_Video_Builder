@@ -6,6 +6,7 @@
 import os
 import time
 import platform
+import subprocess
 
 # external lib imports
 import ffmpeg
@@ -39,12 +40,45 @@ def start_record(metadata: MetadataObject):
     input_format, input_device = get_input_params()
 
     if input_format == "wf-recorder": # wayland so we use wf-recorder
-        os.system(f"wf-recorder --file=test/{metadata.title}.mp4")
+        if metadata.cursor:
+            process = subprocess.Popen([
+                "wf-recorder", 
+                f"--file=test/{metadata.title}.mp4", 
+                f"--framerate={metadata.fps}"
+            ], shell=False)
+        else:
+            process = subprocess.Popen([
+                "wf-recorder",
+                f"--file=test/{metadata.title}.mp4", 
+                f"--framerate={metadata.fps}"
+            ], shell=False)
+        return process
     else: # xorg or other OS so we use ffmpeg
-        process = (
-            ffmpeg
-            .input(input_device, format=input_format, framerate=metadata.fps)
-            .output(f"test/{metadata.title}.mp4", vcodec="libx264", pix_fmt="yuv420p")
-            .overwrite_output()
-            .run_async(pipe_stdin=True)
-        )
+        if metadata.cursor:
+            process = (
+                ffmpeg
+                .input(input_device, format=input_format, framerate=metadata.fps)
+                .output(f"test/{metadata.title}.mp4", vcodec="libx264", pix_fmt="yuv420p")
+                .overwrite_output()
+                .run_async(pipe_stdin=True)
+            )
+        else:
+            process = (
+                ffmpeg
+                .input(input_device, format=input_format, framerate=metadata.fps, draw_mouse=0)
+                .output(f"test/{metadata.title}.mp4", vcodec="libx264", pix_fmt="yuv420p")
+                .overwrite_output()
+                .run_async(pipe_stdin=True)
+            )
+        return process
+
+def stop_record(process):
+    """
+    Остановка фонового процесса записи (хотя подходит для любых процессов)
+    """
+    process.terminate() # спокойная остановка процесса
+
+    try:
+        process.wait(timeout=2) # ожидание остановки
+    except subprocess.TimeoutExpired:
+        process.kill() # если процесс не остановился, force stop
