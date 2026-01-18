@@ -1,0 +1,85 @@
+# Тестовый YAMl скрипт с тестом всех добавленных функций и рисовалки
+metadata:
+  title: "Astra_Auth_Tutorial"
+  resolution: "1920x1080"
+  fps: 30
+  mode: "screenshot"
+  description: "Максимальный тест всех функций Screenshot Mode"
+  language: "ru"
+
+scenes:
+  # СЦЕНА 1 — ИНТРО
+  scene_1:
+    name: "Intro_Scene"
+    path: "input/bg_main.png"
+    duration: 5
+    transition: "blackout"
+    transpeed: 1.2
+
+    texts:
+      text_1:
+        text: "Инструкция по входу"
+        # центр экрана — сразу читаемо
+        start_x: 760
+        start_y: 480
+        size: 80
+        font: "/usr/share/fonts/TTF/JetBrainsMono-ExtraBold.ttf"
+        wait: 0.7
+        duration: 3.5
+
+
+  # СЦЕНА 2 — ФОКУС НА ЛОГИН
+  scene_2:
+    name: "Login_Focus"
+    path: "input/login_screen.png"
+    duration: 8
+    effect: "black_white"
+
+    annotations:
+      # 1. сначала появляется рамка (фокус)
+      annotation_1:
+        type: "square"
+        transparency: 0.15
+        start_x: 780
+        start_y: 380
+        end_x: 1160
+        end_y: 480
+        wait: 1
+        duration: 3
+
+      # 2. потом стрелка (указание)
+      annotation_2:
+        type: "arrow"
+        transparency: 0
+        start_x: 620
+        start_y: 620
+        end_x: 780
+        end_y: 500
+        wait: 3.2
+        duration: 3.5
+
+    texts:
+      # текст появляется ПОСЛЕ фокуса
+      text_1:
+        text: "Введите данные здесь"
+        start_x: 520
+        start_y: 650
+        size: 44
+        wait: 3.5
+        duration: 3.5
+
+
+  # СЦЕНА 3 — УСПЕХ
+  scene_3:
+    name: "Success_Scene"
+    path: "input/bg_main.png"
+    duration: 4
+
+    texts:
+      text_1:
+        text: "Готово!"
+        start_x: 860
+        start_y: 460
+        size: 110
+        wait: 0.5
+        duration: 3
