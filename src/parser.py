@@ -227,17 +227,19 @@ def __parse_annotation(annotation: dict, annotation_key: str) -> AnnotationObjec
     start_y = annotation.get("start_y", None)
     end_x = annotation.get("end_x", None)
     end_y = annotation.get("end_y", None)
+    
+    # кирилл: используем "is None", чтобы число 0 считалось валидным значением
     if not type:
         raise NoRequiredAttribute(f"scenes/{annotation_key}/type")
-    elif not transparency:
+    elif transparency is None:
         raise NoRequiredAttribute(f"scenes/{annotation_key}/transparency")
-    elif not start_x:
+    elif start_x is None:
         raise NoRequiredAttribute(f"scenes/{annotation_key}/start_x")
-    elif not start_y:
+    elif start_y is None:
         raise NoRequiredAttribute(f"scenes/{annotation_key}/start_y")
-    elif not end_x:
+    elif end_x is None:
         raise NoRequiredAttribute(f"scenes/{annotation_key}/end_x")
-    elif not end_y:
+    elif end_y is None:
         raise NoRequiredAttribute(f"scenes/{annotation_key}/end_y")
 
     # Тут меньше обязательных параметров, чем в live recording mode, поэтому проще проверить,
