@@ -11,6 +11,8 @@ from time import sleep
 from selenium import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver import ChromeOptions, Keys
+from selenium.webdriver.common.action_chains import ActionChains
 
 # schemas imports
 from src.schemas.action_object import ActionObject
@@ -19,7 +21,13 @@ def start_actions(actions: List[ActionObject]):
     """Запускает работу selenium с webdriver хрома на основе списка действий"""
     # подключение сервиса (управляет веб-драйвером)
     service = Service(executable_path=ChromeDriverManager().install())
-    driver = webdriver.Chrome(service=service) # сам веб-драйвер
+
+    # базовая настройка
+    options = ChromeOptions()
+
+    options.add_argument("--start-maximized") # чтобы был в полный экран
+
+    driver = webdriver.Chrome(service=service, options=options) # сам веб-драйвер
 
     # выполнение каждого действия в зависимости от типа
     for action in actions:
@@ -31,3 +39,10 @@ def start_actions(actions: List[ActionObject]):
                 tag = splitter[0]
                 params = splitter[1:]
                 driver.find_element("xpath", f"//{tag}[{" and ".join(params)}]").click()
+            case "input":
+                splitter = action.selector.split("_")
+                tag = splitter[0]
+                params = splitter[1:]
+                search_input = driver.find_element("xpath", f"//{tag}[{" and ".join(params)}]")
+                search_input.send_keys(action.text)
+                search_input.send_keys(Keys.ENTER)
