@@ -9,6 +9,8 @@ wheels/
 *.pdf
 devlog.md
 Taskfile.yaml
+output/
+*.mp4
 
 # Virtual environments
 .venv
