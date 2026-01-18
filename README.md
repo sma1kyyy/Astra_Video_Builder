@@ -12,6 +12,7 @@
 ## Необходимые требования к окружению
 - [Python версии 1.13+](https://www.python.org/downloads/release/python-31311/)
 - [Пакетный менеджер UV для установки зависимостей](https://docs.astral.sh/uv/getting-started/installation/)
+- [Утилита wf-recorder для записи экрана (если у вас wayland)](https://github.com/ammen99/wf-recorder)
 
 ## Установка
 Склонируйте репозиторий в директорию с проектом или установите последнюю версюю релиза
