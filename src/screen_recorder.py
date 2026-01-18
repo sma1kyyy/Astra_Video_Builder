@@ -33,7 +33,7 @@ def get_input_params():
         else:
             return "x11grab", ":0.0" #xORG
 
-def start_record(metadata: MetadataObject):
+def start_record(metadata: MetadataObject, output: str):
     """
     Начать запись экрана в дополнительном процессе
     """
@@ -43,13 +43,13 @@ def start_record(metadata: MetadataObject):
         if metadata.cursor:
             process = subprocess.Popen([
                 "wf-recorder", 
-                f"--file=test/{metadata.title}.mp4", 
+                f"--file={output}/{metadata.title}.mp4", 
                 f"--framerate={metadata.fps}"
             ], shell=False)
         else:
             process = subprocess.Popen([
                 "wf-recorder",
-                f"--file=test/{metadata.title}.mp4", 
+                f"--file={output}/{metadata.title}.mp4", 
                 f"--framerate={metadata.fps}"
             ], shell=False)
         return process
@@ -58,7 +58,7 @@ def start_record(metadata: MetadataObject):
             process = (
                 ffmpeg
                 .input(input_device, format=input_format, framerate=metadata.fps)
-                .output(f"test/{metadata.title}.mp4", vcodec="libx264", pix_fmt="yuv420p")
+                .output(f"{output}/{metadata.title}.mp4", vcodec="libx264", pix_fmt="yuv420p")
                 .overwrite_output()
                 .run_async(pipe_stdin=True)
             )
@@ -66,7 +66,7 @@ def start_record(metadata: MetadataObject):
             process = (
                 ffmpeg
                 .input(input_device, format=input_format, framerate=metadata.fps, draw_mouse=0)
-                .output(f"test/{metadata.title}.mp4", vcodec="libx264", pix_fmt="yuv420p")
+                .output(f"{output}/{metadata.title}.mp4", vcodec="libx264", pix_fmt="yuv420p")
                 .overwrite_output()
                 .run_async(pipe_stdin=True)
             )

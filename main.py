@@ -1,28 +1,45 @@
+# basic lib imports
+from os import path
+
+# external lib imports
+import argparse
+
+# funcs imports
 from src.parser import parse
 from src.screen_recorder import start_record, stop_record
 from src.browser_engine import start_actions
 
+# добавление аргументов для работы в CLI режиме
+parser = argparse.ArgumentParser(description='Система генерации демонстрационных роликов на основе YAML-скриптов.')
+parser.add_argument("-f", "--file", help="Путь до YAML-скрипта. Обязательный параметр.")
+parser.add_argument("-o", "--output", help="Путь до директории сохранения видео. Обязательный параметр.")
+
 def main():
-    print("Hello from astra-stipendiya-generirovanie-demonstracionnyh-rolikov-s-pomoshchu-skriptov!")
+    args = parser.parse_args()
+
+    assert args.file, "Необходимо указать путь до YAML-скрипта. Параметр -f."
+    assert args.output, "Необходимо указать путь до директории сохранения видео. Параметр -o."
+
+    assert path.exists(args.file), "Указанный YAML-скрипт не существует."
+    assert args.file.split('.')[-1] in ["yaml", "YAML"], "Указанный скрипт не является YAML-форматом."
+    assert path.isdir(args.output), "Указанная директория не является таковой."
+
+    # парсинг скрипта
+    video = parse(args.file)
+
+    if video.metadata.mode == "live":
+        # захват экрана
+        screen_recording_process = start_record(video.metadata, args.output)
+        # выполнение действий для live recording mode
+        for scene in video.scenes:
+            start_actions(scene.actions)
+        
+        # остановка захвата экрана и сохранение
+        stop_record(screen_recording_process)
+    else:
+        pass
+        # для кирюши
 
 
 if __name__ == "__main__":
-    video = parse("test/test.yaml")
-    process = start_record(video.metadata)
-    for scene in video.scenes:
-        start_actions(scene.actions)
-    stop_record(process)
-
-# from script_parser import load_script
-# from timeline_builder import build_timeline
-# from screenshot_mode import process_screenshots
-# from video_renderer import render_video
-
-# def main():
-#     script = load_script("scripts/demo_script.json")
-#     timeline = build_timeline(script)
-#     frames = process_screenshots(timeline)
-#     render_video(frames, "output/demo.mp4")
-
-# if __name__ == "__main__":
-#     main()
+    main()
