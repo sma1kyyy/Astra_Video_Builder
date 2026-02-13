@@ -41,7 +41,7 @@ def main():
         try:
             for i, scene in enumerate(video.scenes):
                 if scene.tts:
-                    start_speech(f"{args.output}/scene_{i + 1}", scene.tts, video.metadata.language)
+                    start_speech(f"{args.output}/scene_{i + 1}.wav", scene.tts, video.metadata.language, scene.voice)
                 start_actions(scene.actions)
         finally:
             # остановка захвата экрана и сохранение
