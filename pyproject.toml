@@ -9,6 +9,7 @@ dependencies = [
     "dotenv>=0.9.9",
     "fastapi>=0.124.4",
     "ffmpeg-python>=0.2.0",
+    "google-speech>=1.2.0",
     "logging>=0.4.9.6",
     "moviepy>=2.2.1",
     "mss>=10.1.0",
