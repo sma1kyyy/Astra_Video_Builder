@@ -33,6 +33,15 @@ wheels = [
 ]
 
 [[package]]
+name = "appdirs"
+version = "1.4.4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/d7/d8/05696357e0311f5b5c316d7b95f46c669dd9c15aaeecbb48c7d0aeb88c40/appdirs-1.4.4.tar.gz", hash = "sha256:7d5d0167b2b1ba821647616af46a749d1c653740dd0d2415100fe26e27afdf41", size = 13470, upload-time = "2020-05-11T07:59:51.037Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/3b/00/2344469e2084fb287c2e0b57b72910309874c3245463acd6cf5e3db69324/appdirs-1.4.4-py2.py3-none-any.whl", hash = "sha256:a841dacd6b99318a741b166adb07e19ee71a274450e68237b4650ca1055ab128", size = 9566, upload-time = "2020-05-11T07:59:49.499Z" },
+]
+
+[[package]]
 name = "argparse"
 version = "1.4.0"
 source = { registry = "https://pypi.org/simple" }
@@ -50,6 +59,7 @@ dependencies = [
     { name = "dotenv" },
     { name = "fastapi" },
     { name = "ffmpeg-python" },
+    { name = "google-speech" },
     { name = "logging" },
     { name = "moviepy" },
     { name = "mss" },
@@ -68,6 +78,7 @@ requires-dist = [
     { name = "dotenv", specifier = ">=0.9.9" },
     { name = "fastapi", specifier = ">=0.124.4" },
     { name = "ffmpeg-python", specifier = ">=0.2.0" },
+    { name = "google-speech", specifier = ">=1.2.0" },
     { name = "logging", specifier = ">=0.4.9.6" },
     { name = "moviepy", specifier = ">=2.2.1" },
     { name = "mss", specifier = ">=10.1.0" },
@@ -223,6 +234,17 @@ sdist = { url = "https://files.pythonhosted.org/packages/a7/b2/4140c69c6a6643291
 wheels = [
     { url = "https://files.pythonhosted.org/packages/da/71/ae30dadffc90b9006d77af76b393cb9dfbfc9629f339fc1574a1c52e6806/future-1.0.0-py3-none-any.whl", hash = "sha256:929292d34f5872e70396626ef385ec22355a1fae8ad29e1a734c3e43f9fbc216", size = 491326, upload-time = "2024-02-21T11:52:35.956Z" },
 ]
+
+[[package]]
+name = "google-speech"
+version = "1.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "appdirs" },
+    { name = "requests" },
+    { name = "web-cache" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/d8/b1/559e13507296318d50d8b3ca96d041d531df084a74ee89b72f88c8489157/google_speech-1.2.0.tar.gz", hash = "sha256:9f5e7b87951110ba68608f1dea32bbe60d878a8e04ed41d02560f22abbc8b0d2", size = 17945, upload-time = "2023-05-30T08:53:20.35Z" }
 
 [[package]]
 name = "h11"
@@ -705,6 +727,12 @@ wheels = [
 socks = [
     { name = "pysocks" },
 ]
+
+[[package]]
+name = "web-cache"
+version = "1.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/1b/67/9970fa9705c2e4234923a1ae0ca96bd5f29571d21b70c5457528347f1eaf/web_cache-1.1.0.tar.gz", hash = "sha256:d5a10a34c87beffc794b8e1dec77bf6b419886b9cc60b9b10c706810870e0eb5", size = 16171, upload-time = "2018-11-04T00:26:11.092Z" }
 
 [[package]]
 name = "webdriver-manager"
