@@ -39,17 +39,19 @@ def start_record(metadata: MetadataObject, output: str):
     """
     input_format, input_device = get_input_params()
 
+    filepath = f"{output}/{metadata.title}_recorded.mp4"
+
     if input_format == "wf-recorder": # wayland so we use wf-recorder
         if metadata.cursor:
             process = subprocess.Popen([
                 "wf-recorder", 
-                f"--file={output}/{metadata.title}.mp4", 
+                f"--file={filepath}",
                 f"--framerate={metadata.fps}"
             ], shell=False)
         else:
             process = subprocess.Popen([
                 "wf-recorder",
-                f"--file={output}/{metadata.title}.mp4", 
+                f"--file={filepath}",
                 f"--framerate={metadata.fps}"
             ], shell=False)
         return process
@@ -62,7 +64,7 @@ def start_record(metadata: MetadataObject, output: str):
                     format=input_format,
                     framerate=metadata.fps
                        )
-                .output(f"{output}/{metadata.title}.mp4", vcodec="libx264", pix_fmt="yuv420p")
+                .output(f"{filepath}", vcodec="libx264", pix_fmt="yuv420p")
                 .overwrite_output()
                 .run_async(pipe_stdin=True)
             )
@@ -75,7 +77,7 @@ def start_record(metadata: MetadataObject, output: str):
                     framerate=metadata.fps,
                     draw_mouse=0
                 )
-                .output(f"{output}/{metadata.title}.mp4", vcodec="libx264", pix_fmt="yuv420p")
+                .output(f"{filepath}", vcodec="libx264", pix_fmt="yuv420p")
                 .overwrite_output()
                 .run_async(pipe_stdin=True)
             )
