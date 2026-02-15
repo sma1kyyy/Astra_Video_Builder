@@ -21,6 +21,8 @@
 from argparse import ArgumentParser
 from dotenv import load_dotenv
 from os import getenv
+import wave
+
 from speechkit import model_repository, configure_credentials, creds
 
 load_dotenv()
@@ -42,6 +44,13 @@ def start_speech(filepath, tts, lang, voice):
    # Синтез речи и создание аудио с результатом.
    result = model.synthesize(tts, raw_format=False)
    result.export(filepath, 'wav')
+
+def get_wav_duration(filepath: str):
+    with wave.open(filepath, 'rb') as wav_file:
+        n_frames = wav_file.getnframes()
+        frame_rate = wav_file.getframerate()
+        duration = n_frames / float(frame_rate)
+        return duration
 
 if __name__ == '__main__':
    text = "Привет, это проверка работы YANDEX_API_KEY в рамках синтеза текста в речь."

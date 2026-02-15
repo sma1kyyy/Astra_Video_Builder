@@ -39,17 +39,19 @@ def start_record(metadata: MetadataObject, output: str):
     """
     input_format, input_device = get_input_params()
 
+    filepath = f"{output}/{metadata.title}_recorded.mp4"
+
     if input_format == "wf-recorder": # wayland so we use wf-recorder
         if metadata.cursor:
             process = subprocess.Popen([
                 "wf-recorder", 
-                f"--file={output}/{metadata.title}.mp4", 
+                f"--file={filepath}",
                 f"--framerate={metadata.fps}"
             ], shell=False)
         else:
             process = subprocess.Popen([
                 "wf-recorder",
-                f"--file={output}/{metadata.title}.mp4", 
+                f"--file={filepath}",
                 f"--framerate={metadata.fps}"
             ], shell=False)
         return process
@@ -57,16 +59,25 @@ def start_record(metadata: MetadataObject, output: str):
         if metadata.cursor:
             process = (
                 ffmpeg
-                .input(input_device, format=input_format, framerate=metadata.fps)
-                .output(f"{output}/{metadata.title}.mp4", vcodec="libx264", pix_fmt="yuv420p")
+                .input(
+                    input_device,
+                    format=input_format,
+                    framerate=metadata.fps
+                       )
+                .output(f"{filepath}", vcodec="libx264", pix_fmt="yuv420p")
                 .overwrite_output()
                 .run_async(pipe_stdin=True)
             )
         else:
             process = (
                 ffmpeg
-                .input(input_device, format=input_format, framerate=metadata.fps, draw_mouse=0)
-                .output(f"{output}/{metadata.title}.mp4", vcodec="libx264", pix_fmt="yuv420p")
+                .input(
+                    input_device,
+                    format=input_format,
+                    framerate=metadata.fps,
+                    draw_mouse=0
+                )
+                .output(f"{filepath}", vcodec="libx264", pix_fmt="yuv420p")
                 .overwrite_output()
                 .run_async(pipe_stdin=True)
             )
@@ -74,11 +85,31 @@ def start_record(metadata: MetadataObject, output: str):
 
 def stop_record(process):
     """
-    Остановка фонового процесса записи (хотя подходит для любых процессов)
+    Остановка фонового процесса записи
     """
-    process.terminate() # спокойная остановка процесса
 
-    try:
-        process.wait(timeout=2) # ожидание остановки
-    except subprocess.TimeoutExpired:
-        process.kill() # если процесс не остановился, force stop
+    if process.poll() is None:  # если процесс жив
+        try: # по умолчанию ffmpeg останавливает запись через q
+            process.stdin.write(b'q\n')
+            process.stdin.flush()
+            process.wait(timeout=2)
+            return
+        except (BrokenPipeError, subprocess.TimeoutExpired):
+            pass
+
+        try: # если не помогло, пытаемся юзать ctrl+C
+            process.send_signal(0x40010003)  # CTRL_C_EVENT
+            process.wait(timeout=2)
+            return
+        except:
+            pass
+
+        try: # пытаемся остановить процесс программно
+            process.terminate()
+            process.wait(timeout=1)
+            return
+        except subprocess.TimeoutExpired:
+            pass
+
+        process.kill() # просто убиваем его, если ничего выше не помогло
+        process.wait()

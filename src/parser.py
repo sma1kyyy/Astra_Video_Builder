@@ -31,7 +31,7 @@ def parse(filePath: str) -> VideoObject:
 
     try:
         # открытие файла и преобразование его в словарь
-        with open(filePath) as stream:
+        with open(filePath, encoding="utf-8") as stream:
             file = safe_load(stream)
 
         metadata = file.get("metadata", None) # попытка достать словарь с metadata

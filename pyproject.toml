@@ -9,7 +9,6 @@ dependencies = [
     "audioop-lts>=0.2.2",
     "dotenv>=0.9.9",
     "fastapi>=0.124.4",
-    "ffmpeg-python>=0.2.0",
     "pydub",
     "google-speech>=1.2.0",
     "grpcio-tools>=1.78.0",
@@ -24,6 +23,9 @@ dependencies = [
     "selenium>=4.39.0",
     "webdriver-manager>=4.0.2",
     "yandex-speechkit>=1.5.0",
+    "ffmpeg-python>=0.2.0",
+    "psutil>=7.2.2",
+    "pywin32>=311",
 ]
 
 [tool.uv.workspace]
