@@ -10,6 +10,7 @@ import argparse
 from src.parser import parse
 from src.screen_recorder import start_record, stop_record
 from src.browser_engine import start_actions
+from src.speech import start_speech
 
 # кирилл: Импорт движка для работы со скриншотами
 from src.screenshot_engine import process_screenshot_video
@@ -27,7 +28,7 @@ def main():
     assert args.output, "Необходимо указать путь до директории сохранения видео. Параметр -o."
 
     assert path.exists(args.file), "Указанный YAML-скрипт не существует."
-    assert args.file.split('.')[-1] in ["yaml", "YAML"], "Указанный скрипт не является YAML-форматом."
+    assert args.file.split('.')[-1] in ["yaml", "YAML", "yml", "YML"], "Указанный скрипт не является YAML-форматом."
     assert path.isdir(args.output), "Указанная директория не является таковой."
 
     # парсинг скрипта (возвращает VideoObject)
@@ -40,7 +41,9 @@ def main():
         
         # выполнение действий для live recording mode
         try:
-            for scene in video.scenes:
+            for i, scene in enumerate(video.scenes):
+                if scene.tts:
+                    start_speech(f"{args.output}/scene_{i + 1}.wav", scene.tts, video.metadata.language, scene.voice)
                 start_actions(scene.actions)
         finally:
             # остановка захвата экрана и сохранение

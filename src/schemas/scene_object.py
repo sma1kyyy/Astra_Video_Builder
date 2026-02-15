@@ -15,7 +15,7 @@ class SceneObject(ComponentObject):
         duration: int,
         name = "",
         tts = "",
-        voice = "standart",
+        voice = "jane",
         subtitles = False,
         subplace = "down",
         effect = "without",
