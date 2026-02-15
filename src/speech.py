@@ -46,4 +46,4 @@ def start_speech(filepath, tts, lang, voice):
 if __name__ == '__main__':
    text = "Привет, это проверка работы YANDEX_API_KEY в рамках синтеза текста в речь."
 
-   start_speech("./test/test.wav", text, 'ru', "jane")
+   start_speech("./test/test.wav", text, 'ru', "zahar")
