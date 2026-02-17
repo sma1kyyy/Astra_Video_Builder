@@ -1,85 +1,150 @@
-# Тестовый YAMl скрипт с тестом всех добавленных функций и рисовалки
+# тестовый YAML скрипт, адаптированный под систему актов
 metadata:
   title: "Astra_Auth_Tutorial"
   resolution: "1920x1080"
   fps: 30
   mode: "screenshot"
-  description: "Максимальный тест всех функций Screenshot Mode"
+  description: "Идеальное демо отправки сообщения в Astra"
   language: "ru"
 
-scenes:
-  # СЦЕНА 1 — ИНТРО
-  scene_1:
-    name: "Intro_Scene"
-    path: "input/bg_main.png"
-    duration: 5
-    transition: "blackout"
-    transpeed: 1.2
+acts:
+  act_1:
+    name: "Процесс авторизации"
+    scenes:
+      scene_1:
+        name: "Интро"
+        path: "input/bg_main.jpg"
+        duration: 6
+        tts: "Инструкция по отправке сообщения для связи с Astra Automation"
+        voice: "zahar"
+        subtitles: true
+        transition: "blackout"
+        transpeed: 2.0
+        texts:
+          text_1:
+            text: "Инструкция по отправке сообщения"
+            start_x: 760
+            start_y: 540
+            size: 90
+            wait: 1.0
+            duration: 4.0
 
-    texts:
-      text_1:
-        text: "Инструкция по входу"
-        # центр экрана — сразу читаемо
-        start_x: 760
-        start_y: 480
-        size: 80
-        font: "/usr/share/fonts/TTF/JetBrainsMono-ExtraBold.ttf"
-        wait: 0.7
-        duration: 3.5
+      scene_2:
+        name: "Что делать"
+        path: "input/login_screen.png"
+        duration: 7
+        tts: "Нам нужно ввести ФИО, почту и другие данные в эти поля"
+        voice: "zahar"
+        subtitles: true
+        texts:
+          text_1:
+            text: "Здесь нужно указать данные"
+            start_x: 520
+            start_y: 650
+            size: 50
+            wait: 1.5
+            duration: 4.0
 
+      scene_3:
+        name: "Указатель на поле"
+        path: "input/login_screen.png"
+        duration: 8
+        tts: "Вот сюда вводим данные для отправки"
+        voice: "zahar"
+        subtitles: true
+        annotations:
+          annotation_1:
+            type: "square"
+            transparency: 0.2
+            start_x: 780
+            start_y: 380
+            end_x: 1160
+            end_y: 480
+            wait: 1.0
+            duration: 5.0
+            ocr: true
+            ocr_lang: "rus+eng"
+            ocr_min_conf: 0.35
+            ocr_target: "both"
+          annotation_2:
+            type: "arrow"
+            transparency: 0.0
+            start_x: 620
+            start_y: 620
+            end_x: 920
+            end_y: 430
+            wait: 2.5
+            duration: 4.0
+            ocr: true
+            ocr_lang: "rus+eng"
+            ocr_min_conf: 0.35
+            ocr_target: "both"
+        texts:
+          text_1:
+            text: "Поле ввода"
+            start_x: 850
+            start_y: 420
+            size: 36
+            wait: 3.0
+            duration: 3.0
 
-  # СЦЕНА 2 — ФОКУС НА ЛОГИН
-  scene_2:
-    name: "Login_Focus"
-    path: "input/login_screen.png"
-    duration: 8
-    effect: "black_white"
+      scene_4:
+        name: "Заполненные поля"
+        path: "input/screen1.png"
+        duration: 6
+        tts: "Данные успешно введены, нажимаем кнопку отправки"
+        voice: "zahar"
+        subtitles: true
+        annotations:
+          annotation_1:
+            type: "square"
+            transparency: 0.15
+            start_x: 780
+            start_y: 380
+            end_x: 1160
+            end_y: 480
+            wait: 1.0
+            duration: 4.0
+            ocr: true
+            ocr_lang: "rus+eng"
+            ocr_min_conf: 0.35
+            ocr_target: "both"
+          annotation_2:
+            type: "arrow"
+            transparency: 0.0
+            start_x: 700
+            start_y: 600
+            end_x: 970
+            end_y: 430
+            wait: 2.0
+            duration: 3.0
+            ocr: true
+            ocr_lang: "rus+eng"
+            ocr_min_conf: 0.35
+            ocr_target: "both"
+        texts:
+          text_1:
+            text: "Нажать Отправить"
+            start_x: 900
+            start_y: 580
+            size: 42
+            wait: 2.5
+            duration: 3.0
 
-    annotations:
-      # 1. сначала появляется рамка (фокус)
-      annotation_1:
-        type: "square"
-        transparency: 0.15
-        start_x: 780
-        start_y: 380
-        end_x: 1160
-        end_y: 480
-        wait: 1
-        duration: 3
-
-      # 2. потом стрелка (указание)
-      annotation_2:
-        type: "arrow"
-        transparency: 0
-        start_x: 620
-        start_y: 620
-        end_x: 780
-        end_y: 500
-        wait: 3.2
-        duration: 3.5
-
-    texts:
-      # текст появляется ПОСЛЕ фокуса
-      text_1:
-        text: "Введите данные здесь"
-        start_x: 520
-        start_y: 650
-        size: 44
-        wait: 3.5
-        duration: 3.5
-
-
-  # СЦЕНА 3 — УСПЕХ
-  scene_3:
-    name: "Success_Scene"
-    path: "input/bg_main.png"
-    duration: 4
-
-    texts:
-      text_1:
-        text: "Готово!"
-        start_x: 860
-        start_y: 460
-        size: 110
-        wait: 0.5
-        duration: 3
+      scene_5:
+        name: "Успех"
+        path: "input/bg_main.jpg"
+        duration: 5
+        tts: "Отправка сообщения прошла успешно, спасибо за внимание"
+        voice: "zahar"
+        subtitles: true
+        transition: "blackout"
+        transpeed: 1.5
+        texts:
+          text_1:
+            text: "Готово!"
+            start_x: 860
+            start_y: 460
+            size: 120
+            wait: 0.5
+            duration: 4.0
