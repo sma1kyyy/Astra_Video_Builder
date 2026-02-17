@@ -1,0 +1,168 @@
+# # Главный движок
+# # Берет VideoObject, проходит по сценам (в будущем по актам), собирает слои и рендерит итоговое видео
+# # Использование типов данных из src.shemas
+# import os
+# from typing import List
+# from moviepy import *
+# import moviepy.video.fx as vfx
+# from matplotlib import font_manager
+# import matplotlib
+# matplotlib.rcParams['text.usetex'] = False
+# matplotlib.rcParams['mathtext.default'] = 'regular'
+# import matplotlib.pyplot as plt
+
+
+
+# # импорт схем данных
+# from src.schemas.video_object import VideoObject
+# from src.schemas.scene_object import SceneObject
+# from src.schemas.act_object import ActObject
+
+# # импорт графических утилит
+# from src.graphics_utils import (
+#     create_annotation_image,
+#     create_focus_mask,
+#     create_text_bg,
+#     ease_in_out
+# )
+
+# # импорт озвучки
+# from src.speech import generate_speech
+
+# class ScreenshotEngine:
+#     def __init__(self, output_dir: str):
+#         self.output_dir = output_dir
+#         os.makedirs(output_dir, exist_ok=True)
+#         # поиск подходящего шрифта в системе
+#         self.font = font_manager.findfont(font_manager.FontProperties(family='sans serif'))
+
+#     def _apply_dynamic_zoom(self, clip: ImageClip, duration: float):
+#         """создает эффект мягкого приближения для статических скриншотов"""
+#         return clip.resized(
+#             lambda t: round(1 + 0.02 * ease_in_out(min(t / duration, 1)), 4)
+#         )
+
+#     def _process_scene(self, scene: SceneObject, res: tuple) -> VideoClip:
+#         """собирает все слои одной сцены в единый клип"""
+#         w, h = res
+        
+#         # работа с озвучкой: получаем путь к файлу и его длительность
+#         audio_path, audio_dur = generate_speech(scene.tts, scene.voice)
+#         # итоговая длительность сцены подстраивается под голос диктора
+#         duration = max(scene.duration, audio_dur + 0.5) if audio_path else scene.duration
+
+#         if not os.path.exists(scene.path):
+#             raise FileNotFoundError(f"изображение не найдено: {scene.path}")
+
+#         # создание основного фона с эффектом зума
+#         base = (ImageClip(scene.path)
+#                 .with_duration(duration)
+#                 .resized((w, h)))
+#         base = self._apply_dynamic_zoom(base, duration)
+
+#         # применение цветовых эффектов
+#         if scene.effect == "black_white":
+#             base = base.with_effects([vfx.BlackAndWhite()])
+
+#         layers = [base]
+
+#         # обработка фокусных масок для привлечения внимания
+#         for annot in scene.annotations:
+#             if annot.type == "square":
+#                 mask_img = create_focus_mask(w, h, annot.start_x, annot.start_y, annot.end_x, annot.end_y)
+#                 focus_layer = (ImageClip(mask_img)
+#                                .with_start(annot.wait)
+#                                .with_duration(annot.duration or (duration - annot.wait))
+#                                .with_effects([vfx.FadeIn(0.3)]))
+#                 layers.append(focus_layer)
+
+#         # отрисовка графических аннотаций стрелок и прочего
+#         for annot in scene.annotations:
+#             if annot.type == "square":
+#                 continue
+            
+#             annot_img = create_annotation_image(w, h, annot.type, 
+#                                                (annot.start_x, annot.start_y), 
+#                                                (annot.end_x, annot.end_y))
+            
+#             annot_clip = (ImageClip(annot_img)
+#                          .with_start(annot.wait)
+#                          .with_duration(annot.duration or (duration - annot.wait))
+#                          .with_opacity(1.0 - annot.transparency)
+#                          .with_effects([vfx.FadeIn(0.2), vfx.FadeOut(0.2)]))
+#             layers.append(annot_clip)
+
+#         # рендеринг текстовых блоков с подложкой
+#         for txt in scene.texts:
+#             t_clip = TextClip(
+#                 text=txt.text,
+#                 font=self.font,
+#                 font_size=int(txt.size),
+#                 color='white',
+#                 method='caption',
+#                 size=(int(w * 0.8), None)
+#             )
+            
+#             # расчет позиции текста
+#             x = (w - t_clip.size[0]) // 2 if txt.start_x == "center" else txt.start_x
+#             y = (h - t_clip.size[1]) // 2 if txt.start_y == "center" else txt.start_y
+            
+#             # создание подложки для читаемости
+#             bg_img = create_text_bg(w, h, x, y, t_clip.size[0], t_clip.size[1])
+#             bg_clip = (ImageClip(bg_img)
+#                        .with_start(txt.wait)
+#                        .with_duration(txt.duration or (duration - txt.wait))
+#                        .with_effects([vfx.FadeIn(0.3), vfx.FadeOut(0.3)]))
+            
+#             layers.append(bg_clip)
+#             layers.append(t_clip.with_position((x, y))
+#                           .with_start(txt.wait)
+#                           .with_duration(txt.duration or (duration - txt.wait))
+#                           .with_effects([vfx.FadeIn(0.3), vfx.FadeOut(0.3)]))
+
+#         # финальная композиция слоев сцены
+#         final_scene = CompositeVideoClip(layers, size=(w, h)).with_duration(duration)
+        
+#         # наложение сгенерированного аудио
+#         if audio_path:
+#             final_scene = final_scene.with_audio(AudioFileClip(audio_path))
+            
+#         # обработка перехода в начале сцены
+#         if scene.transition == "blackout":
+#             final_scene = final_scene.with_effects([vfx.FadeIn(scene.transpeed)])
+            
+#         return final_scene
+
+#     def render(self, video_obj: VideoObject):
+#         """основной цикл прохода по актам и рендеринг файла"""
+#         print(f"начало сборки проекта: {video_obj.metadata.title}")
+        
+#         res = tuple(map(int, video_obj.metadata.resolution.lower().split('x')))
+#         all_scene_clips = []
+
+#         # итерация по актам и вложенным в них сценам
+#         for act in video_obj.acts:
+#             print(f"обработка акта: {act.name}")
+#             for scene in act.scenes:
+#                 clip = self._process_scene(scene, res)
+#                 all_scene_clips.append(clip)
+
+#         # склейка всех сцен в один поток
+#         final_video = concatenate_videoclips(all_scene_clips, method="compose")
+        
+#         output_file = os.path.join(self.output_dir, f"{video_obj.metadata.title}.mp4")
+        
+#         # сохранение готового видео
+#         final_video.write_videofile(
+#             output_file, 
+#             fps=video_obj.metadata.fps, 
+#             codec="libx264", 
+#             audio_codec="aac",
+#             threads=4
+#         )
+#         print(f"рендер завершен: {output_file}")
+
+# def process_screenshot_video(video: VideoObject, output_path: str):
+#     """внешний интерфейс для запуска движка"""
+#     engine = ScreenshotEngine(output_path)
+#     engine.render(video)

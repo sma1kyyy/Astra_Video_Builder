@@ -1,0 +1,2 @@
+OCR_LANG = "rus+eng"
+MATCH_THRESHOLD = 0.75
