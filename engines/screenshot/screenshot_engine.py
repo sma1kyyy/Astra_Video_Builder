@@ -22,7 +22,7 @@ from engines.screenshot.graphics_utils import (
     create_text_bg,
     ease_in_out,
 )
-from cli.speech import generate_speech
+from core.utils.speech import generate_speech
 from engines.screenshot.ocr_utils import extract_roi, run_ocr
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
