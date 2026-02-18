@@ -12,13 +12,23 @@
 ## Необходимые требования к окружению
 - [Python версии 1.13+](https://www.python.org/downloads/release/python-31311/)
 - [Пакетный менеджер UV для установки зависимостей](https://docs.astral.sh/uv/getting-started/installation/)
+##### Для режима Live Recording
 - [FFMPEG (Если у вас окружение любое, кроме wayland)](https://www.ffmpeg.org/)
 - [Утилита wf-recorder для записи экрана (если у вас wayland)](https://github.com/ammen99/wf-recorder)
+- [Chrome Browser](https://www.google.com/intl/ru_ru/chrome/) или [Firefox](https://www.firefox.com/ru/?utm_campaign=SET_DEFAULT_BROWSER)
 
 ## Установка
 Склонируйте репозиторий в директорию с проектом или установите последнюю версюю релиза
 ```
 git clone https://github.com/DsRase/AstraProject.git
+```
+После этого установите зависимости:
+```
+uv sync
+```
+Для windows:
+```
+python -m uv sync
 ```
 
 Для использования перейдите в [руководство для начинающих](docs/Getting_Started_Guide.md).

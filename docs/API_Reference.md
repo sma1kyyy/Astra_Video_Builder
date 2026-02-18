@@ -9,3 +9,7 @@
 ```
 uv run main.py -f path/to/script.yaml -o path/to/dir
 ```
+*Для windows:*
+```
+python -m uv run main.py -f path/to/script.yaml -o path/to/dir
+```
