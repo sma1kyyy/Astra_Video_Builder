@@ -17,3 +17,8 @@ output/
 
 # Other
 test/
+scripts/
+#input/
+output/*
+*.log
+temp-audio.*
