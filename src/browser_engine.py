@@ -10,6 +10,7 @@ from time import sleep, time
 # external lib imports
 from selenium import webdriver
 from selenium.common import TimeoutException
+from selenium.webdriver.remote.webelement import WebElement
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
@@ -44,21 +45,46 @@ def start_actions(actions: List[ActionObject], tts_time: int):
     start_actions_time = time()
     try:
         for action in actions:
-            match(action.type):
+            match(action.type.lower()):
                 case "navigate": driver.get(action.url)
                 case "wait": sleep(action.duration) # пока временное решение, но рабочее. Оно блокирует поток выполнения
                 case "click":
+                    sleep(1)
                     splitter = action.selector.split("|")
                     tag = splitter[0]
                     params = splitter[1:]
-                    driver.find_element("xpath", f"//{tag}[{" and ".join(params)}]").click()
+
+                    elem = return_displayed_if_exists(
+                        driver.find_elements("xpath", f"//{tag}[{" and ".join(params)}]"))
+
+                    if elem:
+                        elem.click()
+                    else:
+                        raise Exception(f"Element {splitter} not found")
                 case "input":
+                    sleep(1)
                     splitter = action.selector.split("|")
                     tag = splitter[0]
                     params = splitter[1:]
-                    search_input = driver.find_element("xpath", f"//{tag}[{" and ".join(params)}]")
-                    search_input.send_keys(action.text)
-                    search_input.send_keys(Keys.ENTER)
+                    search_input = return_displayed_if_exists(
+                        driver.find_elements("xpath", f"//{tag}[{" and ".join(params)}]"))
+
+                    if search_input:
+                        search_input.click()
+                        search_input.send_keys(action.text)
+                        sleep(1)
+                        search_input.send_keys(Keys.ENTER)
+                    else:
+                        raise Exception(f"Element {splitter} not found")
+                case "scrollup":
+                    sleep(1)
+                    params = {"top": f"-{action.point}", "left": 0} # , "behavior": "smooth"
+
+                    driver.execute_script(f"window.scrollBy({params});")
+                case "scrolldown":
+                    sleep(1)
+                    params = {"top": f"{action.point}", "left": 0} # , "behavior": "smooth"
+                    driver.execute_script(f"window.scrollBy({params});")
     except Exception as e:
         print(e)
         traceback.print_exc()
@@ -68,3 +94,9 @@ def start_actions(actions: List[ActionObject], tts_time: int):
     if tts_time > actions_time:
         print("БОЛЬШЕ")
         sleep(tts_time - actions_time + 1) # +1 потому, что int округляет вниз. Лучше перебдеть, чем недобдеть.
+
+def return_displayed_if_exists(elements: List[WebElement]):
+    for elem in elements:
+        if elem.is_displayed() and elem.is_enabled():
+            return elem
+    return None
