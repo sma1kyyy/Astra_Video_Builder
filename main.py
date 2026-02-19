@@ -47,7 +47,6 @@ def main():
             process_screenshot_video(video, args.output)
         elif video.metadata.mode == "live":
             # захват экрана
-            # video_path = f"{args.output}/{video.metadata.title}.mp4"
             screen_recording_process = start_record(video.metadata, args.output)
 
             # выполнение действий для live recording mode
@@ -57,11 +56,11 @@ def main():
             # 3е - её конец
             # отсчёт идёт в секундах с начала всего ролика
             scene_times = [
-                [1, 1, 0]
+                [0, 0, 1] # 1 сцена будет обрезана из-за загрузки браузера
             ]
             try:
                 for i, scene in enumerate(video.acts[0].scenes):
-                    start_scene = scene_times[i][-1] + 1
+                    start_scene = scene_times[i][-1]
                     scene_time = time()
                     tts_time = 0
                     if scene.tts:
@@ -69,17 +68,15 @@ def main():
                         start_speech(tts_path, scene.tts, video.metadata.language, scene.voice)
                         tts_time = get_wav_duration(tts_path)
 
-                    # начала выполнения основных действий
+                    # начало выполнения основных действий
                     start_actions(scene.actions, tts_time)
 
                     # добавление таймингов сцены
-                    end_scene = int(time() - scene_time) + start_scene
+                    end_scene = time() - scene_time + start_scene
                     scene_times.append([i + 1, start_scene, end_scene])
             finally:
                 # остановка захвата экрана и сохранение
                 stop_record(screen_recording_process)
-                scene_times.pop(0)  # удаление первого элемента сцены, т.к. он по умолчанию и лишний и вырезается
-                # потому что это время на запуск браузера
 
             live_recording_render(args.output, video.metadata.title, scene_times, False)
         else:

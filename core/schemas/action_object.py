@@ -10,6 +10,7 @@ class ActionObject(ComponentObject):
         text = None,
         duration = None,
         point = None,
+        behavior = None,
         wait = 0
     ):
         self.type = type
@@ -18,4 +19,5 @@ class ActionObject(ComponentObject):
         self.text = text
         self.duration = duration
         self.point = point
+        self.behavior = behavior
         self.wait = wait

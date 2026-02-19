@@ -16,12 +16,16 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver import ChromeOptions, Keys
 from selenium.webdriver.common.action_chains import ActionChains
+from requests.exceptions import ConnectionError
 
 # schemas imports
 from core.schemas.action_object import ActionObject
 
 # подключение сервиса (управляет веб-драйвером)
-service = Service(executable_path=ChromeDriverManager().install())
+try:
+    service = Service(ChromeDriverManager().install())
+except ConnectionError as e:
+    raise Exception("Убедитесь, что Вы подключены к интернету и соединение исправно.")
 
 # базовая настройка
 options = ChromeOptions()
@@ -50,24 +54,24 @@ def start_actions(actions: List[ActionObject], tts_time: int):
                 case "wait": sleep(action.duration) # пока временное решение, но рабочее. Оно блокирует поток выполнения
                 case "click":
                     sleep(1)
-                    splitter = action.selector.split("|")
-                    tag = splitter[0]
-                    params = splitter[1:]
+                    # splitter = action.selector.split("|")
+                    # tag = splitter[0]
+                    # params = splitter[1:]
 
                     elem = return_displayed_if_exists(
-                        driver.find_elements("xpath", f"//{tag}[{" and ".join(params)}]"))
+                        driver.find_elements("xpath", f"//{action.selector}"))
 
                     if elem:
                         elem.click()
                     else:
-                        raise Exception(f"Element {splitter} not found")
+                        raise Exception(f"Element {action.selector} not found")
                 case "input":
                     sleep(1)
-                    splitter = action.selector.split("|")
-                    tag = splitter[0]
-                    params = splitter[1:]
+                    # splitter = action.selector.split("|")
+                    # tag = splitter[0]
+                    # params = splitter[1:]
                     search_input = return_displayed_if_exists(
-                        driver.find_elements("xpath", f"//{tag}[{" and ".join(params)}]"))
+                        driver.find_elements("xpath", f"//{action.selector}"))
 
                     if search_input:
                         search_input.click()
@@ -75,15 +79,24 @@ def start_actions(actions: List[ActionObject], tts_time: int):
                         sleep(1)
                         search_input.send_keys(Keys.ENTER)
                     else:
-                        raise Exception(f"Element {splitter} not found")
+                        raise Exception(f"Element {action.selector} not found")
                 case "scrollup":
                     sleep(1)
-                    params = {"top": f"-{action.point}", "left": 0} # , "behavior": "smooth"
+
+                    if action.behavior:
+                        params = {"top": f"-{action.point}", "left": 0, "behavior": action.behavior}
+                    else:
+                        params = {"top": f"-{action.point}", "left": 0}
 
                     driver.execute_script(f"window.scrollBy({params});")
                 case "scrolldown":
                     sleep(1)
-                    params = {"top": f"{action.point}", "left": 0} # , "behavior": "smooth"
+
+                    if action.behavior:                                      # behavior smooth only available for now
+                        params = {"top": f"{action.point}", "left": 0, "behavior": action.behavior}
+                    else:
+                        params = {"top": f"{action.point}", "left": 0}
+
                     driver.execute_script(f"window.scrollBy({params});")
     except Exception as e:
         print(e)

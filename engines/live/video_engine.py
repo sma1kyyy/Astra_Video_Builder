@@ -5,7 +5,7 @@ import os
 from typing import List
 from os import path
 
-from moviepy import VideoFileClip, CompositeAudioClip, AudioFileClip
+from moviepy import VideoFileClip, CompositeAudioClip, AudioFileClip, concatenate_videoclips
 
 def live_recording_render(
         output_path: str,
@@ -24,21 +24,44 @@ def live_recording_render(
     """
     # Объект видео. Сразу обрезается на 1 секунду из-за загрузки браузера.
     recorder_path = f"{output_path}/{title}_recorded.mp4"
-    video_clip = VideoFileClip(recorder_path).subclipped(1)
+    video_clip = VideoFileClip(recorder_path) # .subclipped(1)
 
-    # Наложение tts
+    scenes_len = len(scene_times)
+
+    scenes = []
+
+    # object lists
     tts_list = []
 
+    print("SCENE_LEN:", scenes_len)
+    print("SCENE_TIMES:", scene_times)
+
     for i, start, end in scene_times:
+        print("I:", i)
+        if i == scenes_len - 1: # если сцена последняя, скорее всего её конец посчитан неправильно, а потому обрезаем до конца видео
+            print("the last one")
+            scene = video_clip.subclipped(start)
+        else:
+            scene = video_clip.subclipped(start, end)
+
         # Наложение TTS
         tts_path = f"{output_path}/scene_{i}.wav"
         if path.exists(tts_path):
-            tts_list.append(AudioFileClip(tts_path))
+            print("let tts work!")
+            scene.audio = CompositeAudioClip(
+                [AudioFileClip(tts_path)]).with_duration(scene.duration)
 
-    composited_tts = CompositeAudioClip(tts_list).with_duration(video_clip.duration)
-    video_clip.audio = composited_tts
+        scenes.append(scene)
+
+    print("SCENES BEFORE POP:", scenes)
+    scenes.pop(0) # удаляем первую сцену - загрузку браузера
+
+    print("SCENES AFTER POP:", scenes)
+    video_clip = concatenate_videoclips(scenes)
 
     video_clip.write_videofile(f"{output_path}/{title}.mp4")
+
+    video_clip.close()
 
     # удаляем лишние файлы
     if not save_files:
