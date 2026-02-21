@@ -15,6 +15,8 @@
 ##### Для режима Live Recording
 - [FFMPEG (Если у вас окружение любое, кроме wayland)](https://www.ffmpeg.org/)
 - [Утилита wf-recorder для записи экрана (если у вас wayland, например hyprland)](https://github.com/ammen99/wf-recorder)
+
+    *Примечание. wf-recorder работает плохо, иногда завершая запись заранее. Проблема пока на стадии решения, но не всегда получится записывать видео.*
 - [Chrome Browser](https://www.google.com/intl/ru_ru/chrome/) или [Firefox (ПОКА НЕ РАБОТАЕТ)](https://www.firefox.com/ru/?utm_campaign=SET_DEFAULT_BROWSER)
 
 ## Установка
