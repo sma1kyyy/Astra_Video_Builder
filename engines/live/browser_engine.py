@@ -8,7 +8,6 @@ from typing import List
 from time import sleep, time
 
 # external lib imports
-from screeninfo import get_monitors
 from selenium import webdriver
 from selenium.common import TimeoutException
 from selenium.webdriver.remote.webelement import WebElement
