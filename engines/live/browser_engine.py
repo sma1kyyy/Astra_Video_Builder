@@ -8,6 +8,7 @@ from typing import List
 from time import sleep, time
 
 # external lib imports
+from screeninfo import get_monitors
 from selenium import webdriver
 from selenium.common import TimeoutException
 from selenium.webdriver.remote.webelement import WebElement
@@ -64,7 +65,7 @@ def start_actions(actions: List[ActionObject], tts_time: int):
                     if elem:
                         elem.click()
                     else:
-                        raise Exception(f"Element {action.selector} not found")
+                        print(f"Element {action.selector} not found. SKIPPING...")
                 case "input":
                     sleep(1)
                     # splitter = action.selector.split("|")
@@ -79,7 +80,7 @@ def start_actions(actions: List[ActionObject], tts_time: int):
                         sleep(1)
                         search_input.send_keys(Keys.ENTER)
                     else:
-                        raise Exception(f"Element {action.selector} not found")
+                        print(f"Element {action.selector} not found. SKIPPING...")
                 case "scrollup":
                     sleep(1)
 

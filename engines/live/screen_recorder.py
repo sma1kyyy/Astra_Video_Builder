@@ -42,6 +42,7 @@ def start_record(metadata: MetadataObject, output: str):
     filepath = f"{output}/{metadata.title}_recorded.mp4"
 
     if input_format == "wf-recorder": # wayland so we use wf-recorder
+        print("WE USE WF-RECORDER")
         if metadata.cursor:
             process = subprocess.Popen([
                 "wf-recorder", 
@@ -87,6 +88,7 @@ def stop_record(process):
     """
     Остановка фонового процесса записи
     """
+    print("Останавливаем запись экрана.")
 
     if process.poll() is None:  # если процесс жив
         try: # по умолчанию ffmpeg останавливает запись через q
@@ -96,7 +98,9 @@ def stop_record(process):
             return
         except (BrokenPipeError, subprocess.TimeoutExpired):
             pass
-
+        except AttributeError: # linux hasn't this attr
+            pass
+        
         try: # если не помогло, пытаемся юзать ctrl+C
             process.send_signal(0x40010003)  # CTRL_C_EVENT
             process.wait(timeout=2)

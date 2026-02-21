@@ -74,6 +74,11 @@ def main():
                     # добавление таймингов сцены
                     end_scene = time() - scene_time + start_scene
                     scene_times.append([i + 1, start_scene, end_scene])
+            except Exception as e:
+                print(e)
+                print("ERROR WAS OCCURED")
+                traceback.print_exc()
+                return
             finally:
                 # остановка захвата экрана и сохранение
                 stop_record(screen_recording_process)
