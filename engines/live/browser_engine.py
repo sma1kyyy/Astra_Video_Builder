@@ -45,6 +45,8 @@ def start_actions(actions: List[ActionObject], tts_time: int):
     tts_time - время, сколько длится tts в этой сцене.
     """
     print(f"TTS_TIME: {tts_time}")
+    # print("ACTIONS LET'S GO")
+    # print([action.type for action in actions])
     # выполнение каждого действия в зависимости от типа
     start_actions_time = time()
     try:
@@ -59,7 +61,7 @@ def start_actions(actions: List[ActionObject], tts_time: int):
                     # params = splitter[1:]
 
                     elem = return_displayed_if_exists(
-                        driver.find_elements("xpath", f"//{action.selector}"))
+                        driver.find_elements("xpath", f"{action.selector}"))
 
                     if elem:
                         elem.click()
@@ -71,7 +73,7 @@ def start_actions(actions: List[ActionObject], tts_time: int):
                     # tag = splitter[0]
                     # params = splitter[1:]
                     search_input = return_displayed_if_exists(
-                        driver.find_elements("xpath", f"//{action.selector}"))
+                        driver.find_elements("xpath", f"{action.selector}"))
 
                     if search_input:
                         search_input.click()
@@ -87,6 +89,8 @@ def start_actions(actions: List[ActionObject], tts_time: int):
                         params = {"top": f"-{action.point}", "left": 0, "behavior": action.behavior}
                     else:
                         params = {"top": f"-{action.point}", "left": 0}
+                    
+                    print("scrollUp", params)
 
                     driver.execute_script(f"window.scrollBy({params});")
                 case "scrolldown":
@@ -97,7 +101,27 @@ def start_actions(actions: List[ActionObject], tts_time: int):
                     else:
                         params = {"top": f"{action.point}", "left": 0}
 
+                    print("scrollDown", params)
                     driver.execute_script(f"window.scrollBy({params});")
+                
+                case "scrollto":
+                    sleep(1)
+
+                    params = {"block": "center"}
+
+                    if action.behavior:                                      # behavior smooth only available for now
+                        params["behavior"] = action.behavior
+
+                    elem = return_displayed_if_exists(
+                        driver.find_elements("xpath", f"{action.selector}"))
+
+                    if elem:
+                        driver.execute_script(f"arguments[0].scrollIntoView({params});", elem)
+                    else:
+                        print(f"Element {action.selector} not found. SKIPPING...")
+
+
+
     except Exception as e:
         print(e)
         traceback.print_exc()
