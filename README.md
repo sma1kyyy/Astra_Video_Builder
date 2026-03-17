@@ -22,7 +22,7 @@
 ## Установка
 Склонируйте репозиторий в директорию с проектом или установите последнюю версюю релиза
 ```
-git clone https://github.com/DsRase/AstraProject.git
+git clone https://gitflic.ru/project/student-projects/aa-video-builder.git
 ```
 После этого установите зависимости:
 ```
