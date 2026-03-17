@@ -116,7 +116,7 @@
 - **duration** - обязателен для типа *wait*. Указывает количество *секунд* бездействия.
 - **point** - обязателен для типов: *scrollUp*, *scrollDown*. Определяет количество единиц перемещения страницы.
 - **behavior** - необязательный параметр для всех типов *scroll_*. Определяет поведение скролла, например `smooth` осуществляет плавный переход. Важно: работает только со статическими страницами, на страницы, которые подгружаются динамически через JS, behavior влиять не будет, вызывая ошибку, из-за чего скролл просто не сработает. Доступные значения:
-    - *none (default)* - жёсткий переход ез поведения
+    - *none (default)* - жёсткий переход без поведения
     - *smooth* - плавный скролл
 - **wait** - указывает длительность ожидания действия в секундах. Если задано, действие произойдёт только через переданный промежуток времени в рамках очереди, при этом задерживая оставшиеся изображения.
 
@@ -153,3 +153,191 @@
 - **duration** - доступен для аннотации любого типа. Задает время действия аннотации в секундах. Если указано, то следующая аннотация появится только тогда, когда текущая будет окончена. 
 - **label** - доступен для аннотации любого типа. Задаёт небольшой текст рядом с аннотацией в зависимости от её типа. По умолчанию отсутствует.
 - **text** - доступен только для типов: *square*. Задаёт текст *внутри* аннотации.
+
+
+---
+
+# script format specification
+
+документ описывает актуальный yaml-формат сценария для screenshot mode.
+
+## 1. корневая структура
+```yaml
+metadata: {}
+acts:
+  act_1:
+    scenes:
+      scene_1: {}
+```
+
+- `metadata` — параметры итогового ролика.
+- `acts` — логические блоки.
+- `scene_*` — конкретные сцены в порядке id.
+
+## 2. metadata
+```yaml
+metadata:
+  title: demo
+  resolution: 1920x1080
+  mode: screenshot
+  fps: 24
+  language: ru
+  description: demo video
+```
+
+обязательные:
+- `title`
+- `resolution`
+
+рекомендуемые:
+- `mode: screenshot`
+- `fps` (24/30/60)
+- `language`
+
+## 3. scene object (screenshot)
+```yaml
+scene_1:
+  name: main screen
+  path: input/screen1.png
+  duration: 4
+  tts: "это стартовая страница"
+  voice: zahar
+  subtitles: true
+  subtitle_style: classic
+  subtitle_font_size: 40
+  subtitle_max_chars: 90
+  subtitle_bg_opacity: 0.55
+  effect: without
+  transition: blackout
+  transpeed: 0.8
+```
+
+### обязательные поля
+- `path` — путь к png/jpg в screenshot mode.
+
+### важные поля
+- `duration` — минимальная длительность сцены.
+- `tts` — текст озвучки.
+- `subtitles` — включение субтитров.
+
+### стили субтитров
+`subtitle_style`:
+- `classic`
+- `minimal`
+- `contrast`
+- `cinematic`
+
+## 4. text object
+```yaml
+texts:
+  text_1:
+    text: "краткая инструкция"
+    start_x: 120
+    start_y: 120
+    size: 42
+    wait: 0.2
+    duration: 3.5
+```
+
+обязательные:
+- `text`
+- `start_x`, `start_y`
+- `size`
+
+## 5. annotation object
+поддержаны типы:
+- `square`
+- `arrow`
+
+### 5.1 ручные координаты
+```yaml
+annotations:
+  annotation_1:
+    type: square
+    transparency: 0.25
+    start_x: 130
+    start_y: 90
+    end_x: 630
+    end_y: 310
+```
+
+### 5.2 smart annotation (без ручных координат)
+```yaml
+annotations:
+  annotation_1:
+    type: square
+    transparency: 0.22
+    target_text: "Templates"
+    target_index: 0
+    auto_padding: 16
+    auto_expand_width: 10
+    auto_expand_height: 8
+```
+
+поля smart-режима:
+- `target_text` — ключевая фраза на скриншоте.
+- `target_index` — выбор совпадения при дубликатах.
+- `auto_padding`, `auto_expand_width`, `auto_expand_height` — расширение bbox.
+- `auto_from` — направление старта стрелки для типа `arrow`.
+
+## 6. OCR параметры аннотации
+```yaml
+annotations:
+  annotation_1:
+    type: square
+    transparency: 0.25
+    target_text: "Templates"
+    ocr: true
+    ocr_lang: rus+eng
+    ocr_min_conf: 0.35
+    ocr_target: both
+```
+
+- `ocr` — включить OCR внутри ROI.
+- `ocr_lang` — языки tesseract (`rus+eng`).
+- `ocr_min_conf` — порог confidence `0..1`.
+- `ocr_target`:
+  - `overlay`
+  - `metadata`
+  - `both`
+
+## 7. полный пример screenshot mode
+```yaml
+metadata:
+  title: screenshot_demo
+  resolution: 1920x1080
+  mode: screenshot
+  fps: 24
+
+acts:
+  act_1:
+    name: intro
+    scenes:
+      scene_1:
+        name: templates tab
+        path: input/screen1.png
+        duration: 5
+        tts: "переходим в раздел templates"
+        subtitles: true
+        subtitle_style: contrast
+        annotations:
+          annotation_1:
+            type: square
+            transparency: 0.24
+            target_text: "Templates"
+            auto_padding: 18
+            ocr: true
+            ocr_target: both
+          annotation_2:
+            type: arrow
+            transparency: 0.05
+            target_text: "Create"
+            auto_from: left
+```
+
+## 8. типовые ошибки
+1. `path` отсутствует в screenshot-сцене.
+2. неверный формат `resolution`.
+3. слишком высокий `ocr_min_conf` (например `0.95`) на низкоконтрастных скринах.
+4. `target_text` не находится в кадре из-за другого языка/региcтра/качества.
+5. слишком длинные субтитры без ограничения `subtitle_max_chars`.

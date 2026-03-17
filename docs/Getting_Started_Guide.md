@@ -1,15 +1,71 @@
-# Руководство для начинающих
-1. Установите необходимые зависимости для режима Live Recording. Подробности на главной странице в README.
-2. Создайте директорию, например `data`, в которой вы будете хранить yaml-скрипт, скриншоты и итоговое видео.
-3. Создайте в этой директории файл `script.yaml`.
-4. Вставьте в него любой пример из [примеров](Example_Scripts.md) для режима Live Recording Mode
-5. Впишите команду запуска в консоль. Как пользоваться консолью написано в [руководстве по API](API_Reference.md)
-6. Дождитесь отключения браузера. Даже если Вам кажется, что съемка должна была завершиться, если окно ещё активно - итогове видео монтируется и собирается.
-7. Итоговое видео находится в директории, которую вы создали.
+<!-- пошаговое руководство для создания первого видео в каждом режиме -->
+# Руководство для начинающих.
+Это пошаговый старт для человека, который впервые видит проект.
+результат: вы получите готовый mp4 из screenshot-сценария.
+
+1. подготовка окружения. Проверьте зависимости:
+```bash
+python --version
+uv --version
+ffmpeg -version
+```
+
+Рекомендуется установить OCR-движок:
+```bash
+tesseract --version
+```
+
+2. установка
+```bash
+git clone https://github.com/sma1kyyy/Astra_Video_Builder.git
+cd Astra_Video_Builder
+uv sync
+```
+
+## Live Recording. Введение.
+1. Создайте директорию, например `data`, в которой вы будете хранить yaml-скрипт, скриншоты и итоговое видео.
+2. Создайте в этой директории файл `script.yaml`.
+3. Вставьте в него любой пример из [примеров](Example_Scripts.md) для режима Live Recording Mode
+4. Впишите команду запуска в консоль. Как пользоваться консолью написано в [руководстве по API](API_Reference.md)
+5. Дождитесь отключения браузера. Даже если Вам кажется, что съемка должна была завершиться, если окно ещё активно - итогове видео монтируется и собирается.
+6. Итоговое видео находится в директории, которую вы создали.
 
 [Подробная информация по режиму Live Recording](Live_Recording_Mode_Guide.md)
 
 [Столкнулись с проблемами?](Troubleshooting_Guide.md)
 
-# Для использования Screenshot Mode
-...
+## Screenshot Mode. Введение.
+### 1. первый рендер
+```bash
+mkdir -p output
+uv run python main.py -f examples/screenshot_minimal.yaml -o output
+```
+
+после выполнения проверьте выход:
+```bash
+ls -lah output
+```
+
+### 2. что вы получите
+- `<title>.mp4` — итоговое видео.
+- `<title>_ocr.json` — ocr metadata (если включён ocr_target metadata/both).
+- `output/audio_cache/*.wav` — кэш tts.
+
+### 3. настройка сценария
+редактируйте `examples/screenshot_minimal.yaml`:
+- меняйте `path` на свои изображения,
+- включайте `subtitles` и стили,
+- добавляйте smart аннотации через `target_text`.
+
+### 4. обязательные проверки
+```bash
+python -m compileall cli core engines
+uv run python - <<'PY'
+from core.parser import parse
+v = parse('examples/screenshot_minimal.yaml')
+print(v.metadata.mode, len(v.acts), len(v.acts[0].scenes))
+PY
+```
+
+### 5. если что-то пошло не так
+[смотрите](Troubleshooting_Guide.md)

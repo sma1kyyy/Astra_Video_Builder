@@ -1,5 +1,88 @@
+# =====================OLD VERSION BEFORE 17.03====================================
+# import hashlib
+# import os
+# import wave
+# from pathlib import Path
+
+# from dotenv import load_dotenv
+# from speechkit import model_repository, configure_credentials, creds
+
+# load_dotenv()
+
+# BASE_DIR = Path(__file__).parent.parent
+# CACHE_DIR = BASE_DIR / "output" / "audio_cache"
+# CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+# YANDEX_API_KEY = os.getenv("YANDEX_API_KEY")
+
+# if YANDEX_API_KEY:
+#     configure_credentials(yandex_credentials=creds.YandexCredentials(api_key=YANDEX_API_KEY))
+# else:
+#     print("YANDEX_API_KEY не найден в .env файле")
+
+
+# def get_wav_duration(filepath: str) -> float:
+#     """возвращает длительность WAV файла в секундах."""
+#     try:
+#         with wave.open(filepath, "rb") as f:
+#             frames = f.getnframes()
+#             rate = f.getframerate()
+#             return frames / float(rate)
+#     except Exception as e:
+#         print(f"ошибка при чтении длительности аудио: {e}")
+#         return 0.0
+
+
+# def generate_speech(text: str, voice: str = "zahar", lang: str = "ru-RU") -> tuple[str, float]:
+#     """
+#     1. проверка кэша.
+#     2. если нет в кэше — синтез через API.
+#     3. возвращает (путь_к_файлу, длительность).
+#     """
+#     if not text:
+#         return "", 0.0
+
+#     # Генерируем уникальный ключ на основе текста, голоса и языка
+#     text_hash = hashlib.md5(f"{text}_{voice}_{lang}".encode()).hexdigest()
+#     file_path = CACHE_DIR / f"{text_hash}.wav"
+#     str_path = str(file_path)
+
+#     if file_path.exists():
+#         return str_path, get_wav_duration(str_path)
+
+#     try:
+#         print(f"Синтез речи для: '{text[:30]}...' ({voice})")
+#         model = model_repository.synthesis_model()
+#         model.voice = voice
+#         model.language = lang
+#         model.role = "good"
+
+#         result = model.synthesize(text, raw_format=False)
+#         result.export(str_path, "wav")
+#         return str_path, get_wav_duration(str_path)
+#     except Exception as e:
+#         print(f"ошибка Yandex SpeechKit: {e}")
+#         return "", 0.0
+
+
+# # backward-compatible wrappers for older live mode paths
+
+# def start_speech(filepath: str, tts: str, lang: str, voice: str):
+#     audio_path, _ = generate_speech(tts, voice=voice, lang=lang)
+#     if not audio_path:
+#         return
+
+#     # Если путь назначения отличается от кэша, копируем файл
+#     if audio_path != filepath:
+#         try:
+#             with open(audio_path, "rb") as src, open(filepath, "wb") as dst:
+#                 dst.write(src.read())
+#         except Exception:
+#             pass
+# =====================NEW VERSION AFTER 17.03====================================
 import hashlib
 import os
+import math
 import wave
 from pathlib import Path
 
@@ -32,37 +115,93 @@ def get_wav_duration(filepath: str) -> float:
         return 0.0
 
 
-def generate_speech(text: str, voice: str = "zahar", lang: str = "ru-RU") -> tuple[str, float]:
+#def generate_speech(text: str, voice: str = "zahar", lang: str = "ru-RU") -> tuple[str, float]:
+    #"""
+    # 1. проверка кэша.
+    # 2. если нет в кэше — синтез через API.
+    # 3. возвращает (путь_к_файлу, длительность).
+    # """
+def _write_placeholder_wav(file_path: Path, text: str) -> str:
     """
-    1. проверка кэша.
-    2. если нет в кэше — синтез через API.
-    3. возвращает (путь_к_файлу, длительность).
+    fallback, чтобы пайплайн не ломался если внешний tts недоступен.
+    создаёт короткий нейтральный tone+silence wav.
     """
-    if not text:
+
+    #if not text:
+    duration_s = max(1.2, min(18.0, len((text or "").strip()) / 11.0))
+    sample_rate = 22050
+    n_samples = int(duration_s * sample_rate)
+
+    with wave.open(str(file_path), "wb") as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(sample_rate)
+
+        silent_frame = (0).to_bytes(2, byteorder="little", signed=True)
+        for _ in range(n_samples):
+            wf.writeframesraw(silent_frame)
+
+    return str(file_path)
+
+
+def generate_speech(
+    text: str,
+    voice: str = "zahar",
+    lang: str = "ru-RU",
+    speed: float = 1.0,
+    role: str = "good",
+) -> tuple[str, float]:
+    """
+    1. проверка кэша
+    2. синтез через yandex speechkit
+    3. fallback на локальный placeholder, чтобы рендер не падал
+    4. возвращает (путь_к_файлу, длительность)
+    """
+    if not text or not str(text).strip():
         return "", 0.0
 
     # Генерируем уникальный ключ на основе текста, голоса и языка
-    text_hash = hashlib.md5(f"{text}_{voice}_{lang}".encode()).hexdigest()
+    #text_hash = hashlib.md5(f"{text}_{voice}_{lang}".encode()).hexdigest()
+    norm_speed = max(0.6, min(1.8, float(speed)))
+    cache_key = f"{text}_{voice}_{lang}_{norm_speed}_{role}"
+    text_hash = hashlib.md5(cache_key.encode("utf-8")).hexdigest()
     file_path = CACHE_DIR / f"{text_hash}.wav"
     str_path = str(file_path)
 
     if file_path.exists():
         return str_path, get_wav_duration(str_path)
 
-    try:
-        print(f"Синтез речи для: '{text[:30]}...' ({voice})")
-        model = model_repository.synthesis_model()
-        model.voice = voice
-        model.language = lang
-        model.role = "good"
+    # try:
+    #     print(f"Синтез речи для: '{text[:30]}...' ({voice})")
+    #     model = model_repository.synthesis_model()
+    #     model.voice = voice
+    #     model.language = lang
+    #     model.role = "good"
 
-        result = model.synthesize(text, raw_format=False)
-        result.export(str_path, "wav")
-        return str_path, get_wav_duration(str_path)
-    except Exception as e:
-        print(f"ошибка Yandex SpeechKit: {e}")
-        return "", 0.0
+    #     result = model.synthesize(text, raw_format=False)
+    #     result.export(str_path, "wav")
+    #     return str_path, get_wav_duration(str_path)
+    # except Exception as e:
+    #     print(f"ошибка Yandex SpeechKit: {e}")
+    #     return "", 0.0
+    if YANDEX_API_KEY:
+        try:
+            print(f"синтез речи для: '{text[:40]}...' ({voice}, {lang}, speed={norm_speed})")
+            model = model_repository.synthesis_model()
+            model.voice = voice
+            model.language = lang
+            model.speed = norm_speed
+            model.role = role
 
+            result = model.synthesize(text, raw_format=False)
+            result.export(str_path, "wav")
+            return str_path, get_wav_duration(str_path)
+        except Exception as e:
+            print(f"ошибка yandex speechkit, включен fallback: {e}")
+
+    # fallback путь: гарантируем файл, чтобы не ломать timeline
+    placeholder = _write_placeholder_wav(file_path, text)
+    return placeholder, get_wav_duration(placeholder)
 
 # backward-compatible wrappers for older live mode paths
 

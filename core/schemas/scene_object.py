@@ -17,15 +17,16 @@ class SceneObject(ComponentObject):
         default=None,
         description="Путь до скриншота."
     )
-    duration: Optional[float] = Field(
+    duration: float = Field(
         default=1.0,
-        description="Минимальная длительность сцены."
+        description="Минимальная длительность сцены.",
+        ge=0
     )
-    name: Optional[str] = Field(
+    name: str = Field(
         default="new scene",
         description="Название сцены для логов."
     )
-    tts: Optional[str] = Field(
+    tts: str = Field(
         default="",
         description="Текст TTS (если нужен)."
     )
@@ -33,13 +34,33 @@ class SceneObject(ComponentObject):
         default="jane",
         description="Голос TTS."
     )
-    subtitles: Optional[bool] = Field(
+    subtitles: bool = Field(
         default=False,
         description="Включить или отключить субтитры."
     )
     subplace: Literal["up", "down", "center"] = Field(
         default="down",
         description="Расположение субтитров."
+    )
+    subtitle_style: Literal["classic", "minimal", "contrast", "cinematic"] = Field(
+        default="classic",
+        description="Стиль субтитров."
+    )
+    subtitle_font_size: int = Field(
+        default=40,
+        description="Размер субтитров.",
+        ge=16
+    )
+    subtitle_max_chars: int = Field(
+        default=90,
+        description="Максимальное кол-во символов в субтитрах за раз.",
+        ge=20
+    )
+    subtitle_bg_opacity: float = Field(
+        default=0.55,
+        description="Непрозрачность фона субтитров.",
+        ge=0.0, # >= 0
+        le=1.0 # and <= 1
     )
     effect: Literal["without", "black_white"] = Field(
         default="without",
@@ -51,7 +72,8 @@ class SceneObject(ComponentObject):
     )
     transpeed: Optional[float] = Field(
         default=1.0,
-        description="Длительность перехода."
+        description="Длительность перехода.",
+        ge=0.0
     )
 
     # hard объекты (списки)
@@ -87,16 +109,7 @@ class SceneObject(ComponentObject):
 
     @model_validator(mode="after")
     def post_init(self) -> "SceneObject":
-        # валидация значений
-        if self.duration < 0:
-            self.duration = 1.0
-        if self.transpeed < 0:
-            self.transpeed = 0.5
-
-        if self.effect == "without":
-            self.effect = None
-
-        assert len(self.annotations) == 0 and not self.path, "There must be path for screenshot or list with annotations."
+        #assert len(self.annotations) == 0 and not self.path, "There must be path for screenshot or list with annotations."
         
         return self
 

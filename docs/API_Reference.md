@@ -1,4 +1,4 @@
-# CLI
+<!-- # CLI
 Для создания видео используется скрипт **main.py**. Ему передаются 2 обязательных параметра: 
 - file - путь до YAML-скрипта
 - output - путь до директории, куда будет сохранено видео
@@ -8,8 +8,38 @@
 *Пример:*
 ```
 uv run main.py -f path/to/script.yaml -o path/to/dir
+``` -->
+# Руководство по взаимодействию (API)
+
+## CLI
+
+точка входа: `main.py`
+ 
+### базовая команда
+```bash
+uv run main.py -f <script.yaml> -o <output_dir>
 ```
-*Для windows:*
+### параметры
+- `-f, --file` — путь до yaml-сценария.
+- `-o, --output` — путь до директории результата.
+
+### пример
+```bash
+uv run main.py -f examples/screenshot_minimal.yaml -o output
 ```
-python -m uv run main.py -f path/to/script.yaml -o path/to/dir
-```
+
+## screenshot mode runtime поведение
+при `metadata.mode: screenshot` выполняется:
+1. parser и валидация;
+2. рендер сцен;
+3. tts синтез и кэширование;
+4. наложение субтитров;
+5. рендер аннотаций (ручных и smart);
+6. OCR overlay/metadata;
+7. экспорт mp4.
+
+## ключевые поля screenshot api (yaml)
+- `scene.subtitle_style`: `classic|minimal|contrast|cinematic`
+- `annotation.target_text`: smart поиск текста в кадре
+- `annotation.ocr_*`: тонкая настройка OCR
+

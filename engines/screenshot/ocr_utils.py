@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, Tuple
+from typing import Dict, List, Tuple
 
 import numpy as np
 from PIL import Image, ImageEnhance, ImageOps
@@ -8,6 +8,41 @@ try:
     import pytesseract
 except Exception:  # pragma: no cover - безопасный fallback если зависимости не установлены
     pytesseract = None
+
+_ocr_warned_once = False
+_ocr_available_cache: bool | None = None
+
+
+def _warn_ocr_unavailable(reason: str):
+    global _ocr_warned_once
+    if not _ocr_warned_once:
+        logging.warning("OCR недоступен: %s", reason)
+        _ocr_warned_once = True
+
+
+def _mark_ocr_unavailable(reason: str):
+    global _ocr_available_cache
+    _ocr_available_cache = False
+    _warn_ocr_unavailable(reason)
+
+
+def is_ocr_available() -> bool:
+    global _ocr_available_cache
+
+    if _ocr_available_cache is not None:
+        return _ocr_available_cache
+
+    if pytesseract is None:
+        _mark_ocr_unavailable("pytesseract не импортирован")
+        return False
+
+    try:
+        _ = pytesseract.get_tesseract_version()
+        _ocr_available_cache = True
+        return True
+    except Exception as error:
+        _mark_ocr_unavailable(f"tesseract не установлен или не в PATH ({error})")
+        return False
 
 
 def extract_roi(image: np.ndarray, x1: int, y1: int, x2: int, y2: int) -> Tuple[np.ndarray, Tuple[int, int, int, int]]:
@@ -48,51 +83,127 @@ def _preprocess_roi(roi: np.ndarray) -> np.ndarray:
 
     return np.array(upscaled)
 
+def _run_tesseract_data(image: np.ndarray, lang: str, psm: int) -> Dict[str, List]:
+    return pytesseract.image_to_data(
+        image,
+        lang=lang,
+        output_type=pytesseract.Output.DICT,
+        config=f"--oem 3 --psm {psm}",
+    )
+
+def _is_missing_tesseract_error(error: Exception) -> bool:
+    msg = str(error).lower()
+    return "tesseract is not installed" in msg or "not in your path" in msg
+
+def detect_text_candidates(image: np.ndarray, lang: str = "rus+eng", min_conf: float = 0.25) -> List[Dict]:
+    if not is_ocr_available() or image is None or image.size == 0:
+        return []
+
+    prepared = _preprocess_roi(image)
+    candidates: List[Dict] = []
+
+    for psm in (6, 11):
+        try:
+            data = _run_tesseract_data(prepared, lang, psm)
+        except Exception as error:
+            if _is_missing_tesseract_error(error):
+                _mark_ocr_unavailable(str(error))
+                return []
+            logging.warning("не удалось выполнить OCR psm=%s: %s", psm, error)
+            continue
+
+        scale_x = image.shape[1] / prepared.shape[1]
+        scale_y = image.shape[0] / prepared.shape[0]
+
+        for i, raw_text in enumerate(data.get("text", [])):
+            text = (raw_text or "").strip()
+            if not text:
+                continue
+
+            raw_conf = data.get("conf", ["-1"])[i]
+            try:
+                conf = max(0.0, float(raw_conf) / 100.0)
+            except (TypeError, ValueError):
+                conf = 0.0
+
+            if conf < min_conf:
+                continue
+
+            left = int(float(data.get("left", [0])[i]) * scale_x)
+            top = int(float(data.get("top", [0])[i]) * scale_y)
+            width = int(float(data.get("width", [1])[i]) * scale_x)
+            height = int(float(data.get("height", [1])[i]) * scale_y)
+
+            right = left + max(1, width)
+            bottom = top + max(1, height)
+            candidates.append({"text": text, "confidence": conf, "bbox": (left, top, right, bottom)})
+
+    return candidates
+
 
 def run_ocr(roi: np.ndarray, lang: str = "rus+eng", min_conf: float = 0.0) -> Dict[str, float | str]:
-    """
-    Запускает OCR над ROI и возвращает итоговый текст и среднюю confidence.
-    min_conf ожидается в диапазоне 0..1.
-    """
-    if pytesseract is None:
-        logging.warning("pytesseract недоступен: OCR пропущен")
+    if not is_ocr_available():
         return {"text": "", "confidence": 0.0}
 
     prepared = _preprocess_roi(roi)
+    candidates: List[Tuple[str, float]] = []
 
-    try:
-        data = pytesseract.image_to_data(
-            prepared,
-            lang=lang,
-            output_type=pytesseract.Output.DICT,
-            config="--oem 3 --psm 6",
-        )
-    except Exception as error:
-        logging.warning("Не удалось выполнить OCR: %s", error)
-        return {"text": "", "confidence": 0.0}
-
-    texts: list[str] = []
-    confs: list[float] = []
-
-    for i, raw_text in enumerate(data.get("text", [])):
-        text = (raw_text or "").strip()
-        raw_conf = data.get("conf", ["-1"])[i]
-
+    for psm in (6, 11):
         try:
-            conf = float(raw_conf)
-        except (TypeError, ValueError):
-            conf = -1.0
+            data = _run_tesseract_data(prepared, lang, psm)
+        except Exception as error:
+            if _is_missing_tesseract_error(error):
+                _mark_ocr_unavailable(str(error))
+                return {"text": "", "confidence": 0.0}
+            logging.warning("не удалось выполнить OCR: %s", error)
 
-        if not text or conf < 0:
+
+    # try:
+    #     data = pytesseract.image_to_data(
+    #         prepared,
+    #         lang=lang,
+    #         output_type=pytesseract.Output.DICT,
+    #         config="--oem 3 --psm 6",
+    #     )
+    # except Exception as error:
+    #     logging.warning("Не удалось выполнить OCR: %s", error)
+    #     return {"text": "", "confidence": 0.0}
+
+    # texts: list[str] = []
+    # confs: list[float] = []
             continue
 
-        conf01 = conf / 100.0
-        if conf01 >= float(min_conf):
-            texts.append(text)
-            confs.append(conf01)
+        for i, raw_text in enumerate(data.get("text", [])):
+            text = (raw_text or "").strip()
+            raw_conf = data.get("conf", ["-1"])[i]
 
-    if not texts:
+            try:
+                conf = float(raw_conf)
+            except (TypeError, ValueError):
+                conf = -1.0
+
+            if not text or conf < 0:
+                continue
+
+            conf01 = conf / 100.0
+            if conf01 >= float(min_conf):
+                candidates.append((text, conf01))
+
+
+        # conf01 = conf / 100.0
+        # if conf01 >= float(min_conf):
+        #     texts.append(text)
+        #     confs.append(conf01)
+
+
+    # if not texts:
+    if not candidates:
         return {"text": "", "confidence": 0.0}
 
-    avg_conf = sum(confs) / len(confs)
-    return {"text": " ".join(texts), "confidence": round(avg_conf, 4)}
+    # avg_conf = sum(confs) / len(confs)
+    # return {"text": " ".join(texts), "confidence": round(avg_conf, 4)}
+    text_out = " ".join([t for t, _ in candidates]).strip()
+    avg_conf = float(sum(c for _, c in candidates) / len(candidates))
+    return {"text": text_out, "confidence": avg_conf}
+
+

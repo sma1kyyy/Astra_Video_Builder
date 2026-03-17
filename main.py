@@ -8,7 +8,6 @@ import traceback
 from os import path
 from core.utils.speech import start_speech, get_wav_duration
 from engines.live.screen_recorder import start_record, stop_record
-from engines.live.browser_engine import start_actions
 from core.parser import parse
 from engines.live.video_engine import live_recording_render
 from engines.screenshot.screenshot_engine import process_screenshot_video
@@ -46,6 +45,7 @@ def main():
         if video.metadata.mode == "screenshot":
             process_screenshot_video(video, args.output)
         elif video.metadata.mode == "live":
+            from engines.live.browser_engine import start_actions
             # захват экрана
             screen_recording_process = start_record(video.metadata, args.output)
 

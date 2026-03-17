@@ -169,10 +169,23 @@ def __parse_annotations(annotations: dict) -> List[AnnotationObject]:
         if not item:
             raise NoValue(f"annotations/{key}")
 
-        required = ["type", "transparency", "start_x", "start_y", "end_x", "end_y"]
+        #required = ["type", "transparency", "start_x", "start_y", "end_x", "end_y"]
+        required = ["type", "transparency"]
         for req in required:
             if item.get(req) is None:
                 raise NoRequiredAttribute(f"annotations/{key}/{req}")
+
+        # координаты обязательны только при ручной разметке.
+        # если задан target_text, координаты можно не указывать — они будут найдены автоматически.
+        has_target_text = bool((item.get("target_text") or "").strip())
+        has_manual_coords = all(item.get(req) is not None for req in ["start_x", "start_y", "end_x", "end_y"])
+
+        if not has_target_text and not has_manual_coords:
+            for req in ["start_x", "start_y", "end_x", "end_y"]:
+                if item.get(req) is None:
+                    raise NoRequiredAttribute(f"annotations/{key}/{req}")
+
+        item["has_manual_coords"] = has_manual_coords
 
         for field_name in item.keys():
             if field_name not in valid_fields:

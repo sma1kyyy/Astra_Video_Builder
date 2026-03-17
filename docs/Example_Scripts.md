@@ -1,5 +1,5 @@
 # Примеры Live Recording Mode
-1.
+## 1.
 ```
 metadata:
     title: TestVideo
@@ -82,7 +82,7 @@ acts:
             duration: 3
 ```
 
-2.
+## 2.
 ```
 metadata:
     title: TestVideo2
@@ -147,7 +147,7 @@ acts:
             duration: 2
 ```
 
-3.
+## 3.
 ```
 metadata:
         title: TestVideo2
@@ -303,4 +303,226 @@ acts:
           action_4:
             type: wait
             duration: 1
+```
+# Примеры Screenshot Mode
+## 1. screenshot minimal
+```
+metadata:
+  title: demo_screenshot
+  resolution: 1920x1080
+  mode: screenshot
+  fps: 24
+
+acts:
+  act_1:
+    name: intro
+    scenes:
+      scene_1:
+        name: screen one
+        path: input/screen1.png
+        duration: 4
+        tts: "это стартовый экран и демонстрация smart аннотаций"
+        subtitles: true
+        subtitle_style: contrast
+        subtitle_font_size: 38
+        subtitle_max_chars: 92
+        subtitle_bg_opacity: 0.58
+        annotations:
+          annotation_1:
+            type: square
+            transparency: 0.25
+            target_text: "Astra"
+            start_x: 120
+            start_y: 90
+            end_x: 580
+            end_y: 320
+            auto_padding: 18
+            ocr: true
+            ocr_target: both
+          annotation_2:
+            type: arrow
+            transparency: 0.05
+            target_text: "Astra"
+            start_x: 100
+            start_y: 220
+            end_x: 460
+            end_y: 220
+            auto_from: left
+```
+
+**что демонстрирует:**
+- базовый screenshot pipeline,
+- subtitle style,
+- smart annotation по `target_text`,
+- ocr metadata sidecar.
+
+**запуск:**
+```bash
+mkdir -p output
+uv run python main.py -f examples/screenshot_minimal.yaml -o output
+```
+
+**примечание:**
+- в extended demo у smart-аннотаций добавлены и ручные координаты как fallback,
+  поэтому даже без tesseract вы увидите понятную разметку.
+
+## 2. шаблон ручной разметки
+```yaml
+metadata:
+  title: manual_annotations_demo
+  resolution: 1920x1080
+  mode: screenshot
+  fps: 24
+
+acts:
+  act_1:
+    scenes:
+      scene_1:
+        path: input/screen1.png
+        duration: 4
+        tts: "ручная аннотация"
+        subtitles: true
+        subtitle_style: classic
+        annotations:
+          annotation_1:
+            type: square
+            transparency: 0.2
+            start_x: 120
+            start_y: 80
+            end_x: 620
+            end_y: 320
+```
+
+## 3. шаблон smart разметки
+```yaml
+metadata:
+  title: smart_annotations_demo
+  resolution: 1920x1080
+  mode: screenshot
+  fps: 24
+
+acts:
+  act_1:
+    scenes:
+      scene_1:
+        path: input/screen1.png
+        duration: 5
+        tts: "smart поиск текста"
+        subtitles: true
+        subtitle_style: contrast
+        annotations:
+          annotation_1:
+            type: square
+            transparency: 0.24
+            target_text: "Templates"
+            auto_padding: 16
+            ocr: true
+            ocr_target: both
+          annotation_2:
+            type: arrow
+            transparency: 0.07
+            target_text: "Templates"
+            auto_from: left
+```
+
+
+## 4. расширенный демонстрационный сценарий
+```
+metadata:
+  title: demo_screenshot_extended
+  resolution: 1920x1080
+  mode: screenshot
+  fps: 24
+
+acts:
+  act_1:
+    name: onboarding
+    scenes:
+      scene_1:
+        name: welcome
+        path: input/screen1.png
+        duration: 6
+        tts: "добро пожаловать в демонстрацию screenshot mode. сначала посмотрим главный экран"
+        subtitles: true
+        subtitle_style: classic
+        subtitle_font_size: 40
+        subtitle_max_chars: 96
+        subtitle_bg_opacity: 0.58
+        annotations:
+          annotation_1:
+            type: square
+            transparency: 0.35
+            target_text: "Astra"
+            start_x: 80
+            start_y: 80
+            end_x: 760
+            end_y: 360
+            auto_padding: 24
+            ocr: true
+            ocr_lang: rus+eng
+            ocr_min_conf: 0.2
+            ocr_target: both
+
+      scene_2:
+        name: second screen and smart arrow
+        path: input/screen2.png
+        duration: 7
+        tts: "теперь покажем второй экран и автоматически направим стрелку на ключевую надпись"
+        subtitles: true
+        subtitle_style: contrast
+        subtitle_font_size: 38
+        subtitle_max_chars: 100
+        subtitle_bg_opacity: 0.62
+        annotations:
+          annotation_1:
+            type: arrow
+            transparency: 0.08
+            target_text: "Astra"
+            start_x: 120
+            start_y: 220
+            end_x: 620
+            end_y: 220
+            auto_from: left
+            auto_padding: 18
+          annotation_2:
+            type: square
+            transparency: 0.4
+            start_x: 160
+            start_y: 120
+            end_x: 780
+            end_y: 420
+            ocr: true
+            ocr_target: metadata
+
+      scene_3:
+        name: login screen cinematic subtitles
+        path: input/login_screen.png
+        duration: 8
+        tts: "в финале используем cinematic стиль субтитров и ручную аннотацию для формы логина"
+        subtitles: true
+        subtitle_style: cinematic
+        subtitle_font_size: 42
+        subtitle_max_chars: 110
+        subtitle_bg_opacity: 0.68
+        annotations:
+          annotation_1:
+            type: square
+            transparency: 0.32
+            start_x: 520
+            start_y: 220
+            end_x: 1420
+            end_y: 760
+
+```
+
+что показывает:
+- 3 сцены подряд (длиннее и нагляднее),
+- разные стили субтитров (`classic`, `contrast`, `cinematic`),
+- smart + manual аннотации,
+- ocr sidecar metadata.
+
+запуск:
+```bash
+mkdir -p output
+uv run python main.py -f examples/screenshot_extended_demo.yaml -o output
 ```
