@@ -95,11 +95,13 @@ def _start_firefox() -> WebDriver:
 
 def _park_cursor(driver: WebDriver) -> None:
     # Парковка курсора в правый нижний угол окна — единственный способ убрать
-    # его из записи на Wayland-композиторах, где software cursor plane всегда
-    # попадает в захват независимо от флагов рекордера.
+    # его из записи на Wayland-композиторах (KMS-захват всегда включает software
+    # cursor plane) и на macOS avfoundation при включённом capture_cursor.
     try:
-        size = driver.get_window_size()
-        x, y = int(size["width"]) - 1, int(size["height"]) - 1
+        size = driver.execute_script(
+            "return [window.innerWidth, window.innerHeight];"
+        )
+        x, y = int(size[0]) - 1, int(size[1]) - 1
         builder = ActionBuilder(driver)
         builder.pointer_action.move_to_location(x, y)
         builder.perform()
@@ -195,8 +197,8 @@ def _scroll_into_view(driver: WebDriver, elem: WebElement, behavior: Optional[st
 
 def _park_cursor(driver: WebDriver) -> None:
     # Парковка курсора в правый нижний угол окна — единственный способ убрать
-    # его из записи на Wayland-композиторах, где KMS-захват включает software
-    # cursor plane независимо от флагов рекордера.
+    # его из записи на Wayland-композиторах (KMS-захват всегда включает software
+    # cursor plane) и на macOS avfoundation при включённом capture_cursor.
     try:
         size = driver.execute_script(
             "return [window.innerWidth, window.innerHeight];"

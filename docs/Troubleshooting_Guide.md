@@ -65,3 +65,9 @@ Wayland-сессии (Hyprland/GNOME/KDE) пишутся через `gpu-screen-
 
 ## 16. Live Recording: Firefox запускается медленно или зависает на kiosk
 В некоторых окружениях `--kiosk` для Firefox требует, чтобы окно было активным. Закройте посторонние окна, поверх которых Firefox мог бы запуститься. При первом запуске GeckoDriver скачивается в `~/.wdm/` — это занимает время.
+
+## 17. macOS: `UnsupportedPlatformError: ffmpeg не сообщил ни одного 'Capture screen'`
+На macOS бэкенд записи — `avfoundation`, индекс screen-устройства определяется динамически через `ffmpeg -f avfoundation -list_devices true -i ""`. Если в выводе нет ни одного `Capture screen N` — это почти всегда означает, что у запускающего приложения (Terminal / iTerm / IDE) **нет разрешения Screen Recording**. Откройте `System Settings → Privacy & Security → Screen Recording`, добавьте туда ваш терминал/IDE, **полностью перезапустите** его и повторите запуск. Без этого разрешения ffmpeg молча пишет чёрный кадр.
+
+## 18. macOS: курсор виден в записи несмотря на `cursor: false`
+Для avfoundation проект передаёт ffmpeg флаг `capture_cursor=0` (а не `draw_mouse`, как для x11grab/gdigrab). Если курсор всё равно попадает в запись — проверьте, что у вас актуальная версия ffmpeg (`ffmpeg -version`, желательно ≥ 5.0). Дополнительно курсор паркуется в правый нижний угол окна браузера через Selenium — это страхует ситуацию, когда capture_cursor игнорируется конкретной сборкой ffmpeg.
