@@ -17,9 +17,9 @@
 - [Утилита gpu-screen-recorder для записи Wayland-сессий](https://git.dec05eba.com/gpu-screen-recorder/)
 
     *Примечание. Для Wayland (Hyprland, GNOME, KDE Plasma) используется gpu-screen-recorder. Поддерживает скрытие курсора (`-cursor no`).*
-- [Chrome Browser](https://www.google.com/intl/ru_ru/chrome/)
+- [Chrome Browser](https://www.google.com/intl/ru_ru/chrome/) или [Firefox](https://www.mozilla.org/firefox/)
 
-    *Поддержка Firefox на данный момент не реализована.*
+    *Выбор браузера задаётся через поле `browser: chrome|firefox` в `metadata` YAML-скрипта (по умолчанию `chrome`).*
 
 ## Установка
 Склонируйте репозиторий в директорию с проектом или установите последнюю версюю релиза

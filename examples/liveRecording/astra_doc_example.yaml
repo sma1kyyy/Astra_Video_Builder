@@ -3,7 +3,7 @@ metadata:
   resolution: 1920x1080
   mode: live
   fps: 30
-  cursor: false
+  cursor: true
   save_files: false
 
 acts:

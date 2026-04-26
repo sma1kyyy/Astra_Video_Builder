@@ -29,6 +29,10 @@ class MetadataObject(ComponentObject):
         default="live",
         description="Режим создания видео."
     )
+    browser: Literal["chrome", "firefox"] = Field(
+        default="chrome",
+        description="Браузер для Live Recording режима."
+    )
     cursor: Optional[bool] = Field(
         default=False,
         description="Отображать курсор в конечной записи или нет."

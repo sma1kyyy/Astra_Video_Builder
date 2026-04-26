@@ -16,6 +16,9 @@
 - **mode** - режим записи видео-ролика. Доступны:
     - live *(default)*
     - screenshot
+- **browser** - браузер для режима *live*. Доступны:
+    - chrome *(default)*
+    - firefox
 - **cursor** - отображать курсор или нет. Доступные значения:
     - true 
     - false *(default)*

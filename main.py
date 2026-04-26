@@ -43,7 +43,7 @@ def _run_live_mode(video, output_dir: str) -> None:
         screen_recording_process = start_record(video.metadata, output_dir)
 
         warmup_start = time()
-        driver = get_driver()
+        get_driver(video.metadata.browser)
         warmup_end = time() - warmup_start
         log.info("Browser warmup занял %.2fs", warmup_end)
         scene_times.append([0, 0.0, warmup_end])
