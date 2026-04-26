@@ -234,8 +234,9 @@ def start_actions(actions: List[ActionObject], tts_time: float) -> None:
                 elem = _resolve_element(driver, action.selector)
                 elem.click()
                 elem.send_keys(action.text)
-                sleep(1)
-                elem.send_keys(Keys.ENTER)
+                if action.enter:
+                    sleep(1)
+                    elem.send_keys(Keys.ENTER)
             case "scrollUp":
                 _scroll_by(driver, -action.point, action.behavior)
             case "scrollDown":

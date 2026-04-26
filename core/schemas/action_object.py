@@ -51,6 +51,10 @@ class ActionObject(ComponentObject):
         description="Пауза перед действием в секундах.",
         ge=0,
     )
+    enter: bool = Field(
+        default=True,
+        description="Нажимать ли ENTER после input. Только для type=input.",
+    )
 
     @field_validator("type", mode="before")
     @classmethod

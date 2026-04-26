@@ -4,8 +4,13 @@
 metadata:
     title: TestVideo
     resolution: 1920x1080
-    cursor: false
+    description: Демонстрация документации Astra Automation
+    language: ru
+    mode: live
     browser: chrome
+    cursor: false
+    fps: 30
+    save_files: false
 
 acts:
   act_1:
@@ -88,8 +93,13 @@ acts:
 metadata:
     title: TestVideo2
     resolution: 1920x1080
-    cursor: true
+    description: Демонстрация автоматизации браузера на the-internet.herokuapp.com
+    language: ru
+    mode: live
     browser: firefox
+    cursor: true
+    fps: 30
+    save_files: false
 
 acts:
   act_1:
@@ -152,9 +162,15 @@ acts:
 ## 3. Astra Automation landing (форма обратной связи)
 ```yaml
 metadata:
-        title: TestVideo2
-        resolution: 1920x1080
-        cursor: false
+    title: TestVideo3
+    resolution: 1920x1080
+    description: Заполнение формы обратной связи на astra-automation.ru
+    language: ru
+    mode: live
+    browser: chrome
+    cursor: false
+    fps: 30
+    save_files: true
 
 acts:
   act_1:
@@ -242,6 +258,7 @@ acts:
               type: input
               selector: //*[@id='lastname']
               text: Гутник
+              enter: false
             action_5:
               type: wait
               duration: 1
@@ -249,6 +266,7 @@ acts:
               type: input
               selector: //*[@id='firstname']
               text: Вадим
+              enter: false
             action_7:
               type: wait
               duration: 1
@@ -256,6 +274,7 @@ acts:
               type: input
               selector: //*[@id='middlename']
               text: Сергеевич
+              enter: false
             action_9:
               type: wait
               duration: 1
@@ -263,6 +282,7 @@ acts:
               type: input
               selector: //*[@id='phone']
               text: 88005553535
+              enter: false
             action_11:
               type: wait
               duration: 1
@@ -270,6 +290,7 @@ acts:
               type: input
               selector: //*[@id='email']
               text: myemail@mail.ru
+              enter: false
             action_13:
               type: wait
               duration: 1
@@ -277,6 +298,7 @@ acts:
               type: input
               selector: //*[@id="company"]
               text: Astra
+              enter: false
             action_15:
               type: wait
               duration: 1
@@ -284,6 +306,7 @@ acts:
               type: input
               selector: //*[@id="message"]
               text: Видишь? Это очень просто!
+              enter: false
             action_17:
               type: wait
               duration: 1
