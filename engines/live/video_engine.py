@@ -14,16 +14,12 @@ def live_recording_render(
     title: str,
     scene_times: List[List[float]],
     save_files: bool = False,
-    warmup_offset: float = 0.0,
 ) -> str:
     """Финальный монтаж live recording.
 
-    scene_times: список вида [scene_id, start_sec, end_sec]. Первая запись — это
-    "warmup"-сцена с фактическим временем загрузки браузера, она будет вырезана
-    из итогового видео.
+    scene_times: список вида [scene_id, start_sec, end_sec], где время отсчитывается
+    от старта первой сцены (рекордер уже работает на чистом окне браузера).
     save_files: оставлять ли промежуточные TTS-файлы.
-    warmup_offset: опциональное доп. смещение в секундах (если хочется срезать
-    немного больше, чем длилась холодная загрузка браузера).
     """
     recorder_path = f"{output_path}/{title}_recorded.mp4"
     if not path.exists(recorder_path):
@@ -34,15 +30,9 @@ def live_recording_render(
     scenes = []
 
     try:
-        warmup_end = scene_times[0][2] + warmup_offset if scene_times else 0.0
-        warmup_end = max(0.0, warmup_end)
-
         scene_count = len(scene_times)
 
         for idx, (scene_id, start, end) in enumerate(scene_times):
-            if idx == 0:
-                continue
-
             adjusted_start = max(0.0, start)
             if adjusted_start >= video_clip.duration:
                 log.warning("Пропускаем сцену %s — старт %.2f выходит за видео %.2f",
@@ -63,7 +53,7 @@ def live_recording_render(
             scenes.append(scene)
 
         if not scenes:
-            raise RuntimeError("После обрезки warmup-сцены не осталось ни одной сцены для рендера.")
+            raise RuntimeError("Не осталось ни одной сцены для рендера.")
 
         final_clip = concatenate_videoclips(scenes)
         final_path = f"{output_path}/{title}.mp4"

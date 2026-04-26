@@ -30,6 +30,8 @@ def _run_screenshot_mode(video, output_dir: str) -> None:
 
 
 def _run_live_mode(video, output_dir: str) -> None:
+    from time import sleep
+
     from core.utils.speech import get_wav_duration, start_speech
     from engines.live.browser_engine import get_driver, quit_driver, start_actions
     from engines.live.screen_recorder import start_record, stop_record
@@ -40,24 +42,35 @@ def _run_live_mode(video, output_dir: str) -> None:
     render_attempted = False
 
     try:
-        screen_recording_process = start_record(video.metadata, output_dir)
+        driver = get_driver(video.metadata.browser)
 
-        warmup_start = time()
-        get_driver(video.metadata.browser)
-        warmup_end = time() - warmup_start
-        log.info("Browser warmup занял %.2fs", warmup_end)
-        scene_times.append([0, 0.0, warmup_end])
+        first_scene = video.acts[0].scenes[0]
+        if not first_scene.actions or first_scene.actions[0].type != "navigate":
+            raise ValueError(
+                "Первое действие первой сцены должно быть `navigate` — "
+                "иначе нет страницы, на которой выполнять действия."
+            )
 
+        first_action = first_scene.actions.pop(0)
+        driver.get(first_action.url)
+
+        tts_durations: dict[int, float] = {}
         for i, scene in enumerate(video.acts[0].scenes):
-            scene_id = i + 1
-            start_scene = scene_times[-1][2]
-            scene_start_time = time()
-            tts_time = 0.0
-
             if scene.tts:
+                scene_id = i + 1
                 tts_path = f"{output_dir}/scene_{scene_id}.wav"
                 start_speech(tts_path, scene.tts, video.metadata.language, scene.voice)
-                tts_time = get_wav_duration(tts_path)
+                tts_durations[scene_id] = get_wav_duration(tts_path)
+
+        screen_recording_process = start_record(video.metadata, output_dir)
+        sleep(0.3)
+
+        timeline_start = time()
+        for i, scene in enumerate(video.acts[0].scenes):
+            scene_id = i + 1
+            start_scene = time() - timeline_start
+            scene_start_time = time()
+            tts_time = tts_durations.get(scene_id, 0.0)
 
             start_actions(scene.actions, tts_time)
 
@@ -69,7 +82,7 @@ def _run_live_mode(video, output_dir: str) -> None:
         stop_record(screen_recording_process)
         quit_driver()
 
-        if len(scene_times) > 1:
+        if len(scene_times) > 0:
             render_attempted = True
             try:
                 final_path = live_recording_render(
