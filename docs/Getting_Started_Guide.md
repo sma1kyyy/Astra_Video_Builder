@@ -17,18 +17,25 @@ tesseract --version
 
 2. установка
 ```bash
-git clone https://github.com/sma1kyyy/Astra_Video_Builder.git
-cd Astra_Video_Builder
+git clone https://gitflic.ru/project/student-projects/aa-video-builder.git
+cd aa-video-builder
 uv sync
+source .venv/bin/activate
 ```
 
+Скопируйте `.env.example` в `.env` и заполните `YANDEX_API_KEY` (нужен только если используете TTS).
+
 ## Live Recording. Введение.
-1. Создайте директорию, например `data`, в которой вы будете хранить yaml-скрипт, скриншоты и итоговое видео.
-2. Создайте в этой директории файл `script.yaml`.
-3. Вставьте в него любой пример из [примеров](Example_Scripts.md) для режима Live Recording Mode
-4. Впишите команду запуска в консоль. Как пользоваться консолью написано в [руководстве по API](API_Reference.md)
-5. Дождитесь отключения браузера. Даже если Вам кажется, что съемка должна была завершиться, если окно ещё активно - итогове видео монтируется и собирается.
-6. Итоговое видео находится в директории, которую вы создали.
+1. Создайте каталог, например `data`, в котором вы будете хранить yaml-скрипт, скриншоты и итоговое видео.
+2. Создайте в этом каталоге файл `script.yaml`.
+3. Вставьте в него любой пример из [примеров](Example_Scripts.md) для режима Live Recording Mode.
+4. Запустите команду:
+   ```bash
+   uv run python main.py -f data/script.yaml -o data
+   ```
+   (или `./main.py -f data/script.yaml -o data` — у `main.py` есть shebang).
+5. Дождитесь отключения браузера. Даже если кажется, что съёмка завершилась, монтаж итогового видео ещё может идти.
+6. Итоговое видео сохраняется в указанный каталог `-o`.
 
 [Подробная информация по режиму Live Recording](Live_Recording_Mode_Guide.md)
 

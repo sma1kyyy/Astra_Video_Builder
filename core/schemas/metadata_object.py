@@ -1,8 +1,9 @@
 from pydantic.dataclasses import dataclass
-from pydantic import Field, ConfigDict, model_validator
-from typing import List, Optional, Literal
+from pydantic import Field, ConfigDict
+from typing import Optional, Literal
 
 from core.schemas.ComponentObject import ComponentObject
+
 
 @dataclass(config=ConfigDict(arbitrary_types_allowed=True))
 class MetadataObject(ComponentObject):
@@ -20,7 +21,7 @@ class MetadataObject(ComponentObject):
         default="",
         description="Описание видео для логов."
     )
-    language: Literal["ru", "eng"] = Field(
+    language: Literal["ru", "en"] = Field(
         default="ru",
         description="Язык TTS."
     )
@@ -37,22 +38,10 @@ class MetadataObject(ComponentObject):
         description="FPS у итогового видео.",
         gt=0
     )
-
-
-    # def __init__(
-    #     self,
-    #     title: str,
-    #     resolution: str,
-    #     description="",
-    #     language="ru",
-    #     mode="live",
-    #     cursor=True,
-    #     fps=30
-    # ):
-    #     self.title = title
-    #     self.resolution = resolution
-    #     self.description = description
-    #     self.language = language
-    #     self.mode = mode
-    #     self.cursor = cursor
-    #     self.fps = fps
+    save_files: bool = Field(
+        default=False,
+        description=(
+            "Сохранять промежуточные файлы (TTS-аудио, исходную запись и т. д.) "
+            "после рендера. По умолчанию — удалять."
+        ),
+    )

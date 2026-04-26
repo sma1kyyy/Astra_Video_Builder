@@ -1,147 +1,75 @@
-# =====================OLD VERSION BEFORE 17.03====================================
-# import hashlib
-# import os
-# import wave
-# from pathlib import Path
+"""
+Синтез речи через Yandex SpeechKit.
 
-# from dotenv import load_dotenv
-# from speechkit import model_repository, configure_credentials, creds
+YANDEX_API_KEY не обязателен в целом, но обязателен и должен быть валидным
+для функций синтеза речи. Если TTS вызывается без ключа или с невалидным,
+функция явно поднимает исключение и останавливает пайплайн.
+"""
+from __future__ import annotations
 
-# load_dotenv()
-
-# BASE_DIR = Path(__file__).parent.parent
-# CACHE_DIR = BASE_DIR / "output" / "audio_cache"
-# CACHE_DIR.mkdir(parents=True, exist_ok=True)
-
-# YANDEX_API_KEY = os.getenv("YANDEX_API_KEY")
-
-# if YANDEX_API_KEY:
-#     configure_credentials(yandex_credentials=creds.YandexCredentials(api_key=YANDEX_API_KEY))
-# else:
-#     print("YANDEX_API_KEY не найден в .env файле")
-
-
-# def get_wav_duration(filepath: str) -> float:
-#     """возвращает длительность WAV файла в секундах."""
-#     try:
-#         with wave.open(filepath, "rb") as f:
-#             frames = f.getnframes()
-#             rate = f.getframerate()
-#             return frames / float(rate)
-#     except Exception as e:
-#         print(f"ошибка при чтении длительности аудио: {e}")
-#         return 0.0
-
-
-# def generate_speech(text: str, voice: str = "zahar", lang: str = "ru-RU") -> tuple[str, float]:
-#     """
-#     1. проверка кэша.
-#     2. если нет в кэше — синтез через API.
-#     3. возвращает (путь_к_файлу, длительность).
-#     """
-#     if not text:
-#         return "", 0.0
-
-#     # Генерируем уникальный ключ на основе текста, голоса и языка
-#     text_hash = hashlib.md5(f"{text}_{voice}_{lang}".encode()).hexdigest()
-#     file_path = CACHE_DIR / f"{text_hash}.wav"
-#     str_path = str(file_path)
-
-#     if file_path.exists():
-#         return str_path, get_wav_duration(str_path)
-
-#     try:
-#         print(f"Синтез речи для: '{text[:30]}...' ({voice})")
-#         model = model_repository.synthesis_model()
-#         model.voice = voice
-#         model.language = lang
-#         model.role = "good"
-
-#         result = model.synthesize(text, raw_format=False)
-#         result.export(str_path, "wav")
-#         return str_path, get_wav_duration(str_path)
-#     except Exception as e:
-#         print(f"ошибка Yandex SpeechKit: {e}")
-#         return "", 0.0
-
-
-# # backward-compatible wrappers for older live mode paths
-
-# def start_speech(filepath: str, tts: str, lang: str, voice: str):
-#     audio_path, _ = generate_speech(tts, voice=voice, lang=lang)
-#     if not audio_path:
-#         return
-
-#     # Если путь назначения отличается от кэша, копируем файл
-#     if audio_path != filepath:
-#         try:
-#             with open(audio_path, "rb") as src, open(filepath, "wb") as dst:
-#                 dst.write(src.read())
-#         except Exception:
-#             pass
-# =====================NEW VERSION AFTER 17.03====================================
 import hashlib
-import os
-import math
+import shutil
 import wave
 from pathlib import Path
+from typing import Tuple
 
-from dotenv import load_dotenv
-from speechkit import model_repository, configure_credentials, creds
+from speechkit import configure_credentials, creds, model_repository
 
-load_dotenv()
+from core.config import settings
+from core.utils.logger import LoggerFactory
 
-BASE_DIR = Path(__file__).parent.parent
+log = LoggerFactory.get_logger(__name__)
+
+BASE_DIR = Path(__file__).resolve().parent.parent
 CACHE_DIR = BASE_DIR / "output" / "audio_cache"
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
-YANDEX_API_KEY = os.getenv("YANDEX_API_KEY")
 
-if YANDEX_API_KEY:
-    configure_credentials(yandex_credentials=creds.YandexCredentials(api_key=YANDEX_API_KEY))
-else:
-    print("YANDEX_API_KEY не найден в .env файле")
+class SpeechConfigurationError(RuntimeError):
+    """Невозможно настроить TTS (нет/невалидный API-ключ)."""
+
+
+class SpeechSynthesisError(RuntimeError):
+    """Ошибка синтеза речи на стороне SpeechKit."""
+
+
+_credentials_configured = False
+
+
+def _ensure_credentials() -> None:
+    """Лениво настраивает SpeechKit. Кидает понятное исключение, если ключа нет."""
+    global _credentials_configured
+    if _credentials_configured:
+        return
+
+    if not settings.yandex_api_key:
+        raise SpeechConfigurationError(
+            "YANDEX_API_KEY не задан. Для синтеза речи (TTS) ключ обязателен. "
+            "Укажите его в .env или переменных окружения."
+        )
+
+    try:
+        configure_credentials(
+            yandex_credentials=creds.YandexCredentials(api_key=settings.yandex_api_key)
+        )
+    except Exception as exc:
+        raise SpeechConfigurationError(
+            f"Не удалось настроить Yandex SpeechKit с переданным YANDEX_API_KEY: {exc}"
+        ) from exc
+
+    _credentials_configured = True
 
 
 def get_wav_duration(filepath: str) -> float:
-    """возвращает длительность WAV файла в секундах."""
+    """Возвращает длительность WAV-файла в секундах."""
     try:
         with wave.open(filepath, "rb") as f:
             frames = f.getnframes()
             rate = f.getframerate()
             return frames / float(rate)
     except Exception as e:
-        print(f"ошибка при чтении длительности аудио: {e}")
+        log.error("Ошибка при чтении длительности аудио %s: %s", filepath, e)
         return 0.0
-
-
-#def generate_speech(text: str, voice: str = "zahar", lang: str = "ru-RU") -> tuple[str, float]:
-    #"""
-    # 1. проверка кэша.
-    # 2. если нет в кэше — синтез через API.
-    # 3. возвращает (путь_к_файлу, длительность).
-    # """
-def _write_placeholder_wav(file_path: Path, text: str) -> str:
-    """
-    fallback, чтобы пайплайн не ломался если внешний tts недоступен.
-    создаёт короткий нейтральный tone+silence wav.
-    """
-
-    #if not text:
-    duration_s = max(1.2, min(18.0, len((text or "").strip()) / 11.0))
-    sample_rate = 22050
-    n_samples = int(duration_s * sample_rate)
-
-    with wave.open(str(file_path), "wb") as wf:
-        wf.setnchannels(1)
-        wf.setsampwidth(2)
-        wf.setframerate(sample_rate)
-
-        silent_frame = (0).to_bytes(2, byteorder="little", signed=True)
-        for _ in range(n_samples):
-            wf.writeframesraw(silent_frame)
-
-    return str(file_path)
 
 
 def generate_speech(
@@ -150,18 +78,20 @@ def generate_speech(
     lang: str = "ru-RU",
     speed: float = 1.0,
     role: str = "good",
-) -> tuple[str, float]:
+) -> Tuple[str, float]:
     """
-    1. проверка кэша
-    2. синтез через yandex speechkit
-    3. fallback на локальный placeholder, чтобы рендер не падал
-    4. возвращает (путь_к_файлу, длительность)
+    Синтез речи через Yandex SpeechKit с локальным кэшированием.
+
+    Возвращает (путь_к_файлу, длительность_в_секундах).
+
+    Кидает SpeechConfigurationError, если YANDEX_API_KEY отсутствует.
+    Кидает SpeechSynthesisError при ошибке синтеза.
     """
     if not text or not str(text).strip():
         return "", 0.0
 
-    # Генерируем уникальный ключ на основе текста, голоса и языка
-    #text_hash = hashlib.md5(f"{text}_{voice}_{lang}".encode()).hexdigest()
+    _ensure_credentials()
+
     norm_speed = max(0.6, min(1.8, float(speed)))
     cache_key = f"{text}_{voice}_{lang}_{norm_speed}_{role}"
     text_hash = hashlib.md5(cache_key.encode("utf-8")).hexdigest()
@@ -171,49 +101,51 @@ def generate_speech(
     if file_path.exists():
         return str_path, get_wav_duration(str_path)
 
-    # try:
-    #     print(f"Синтез речи для: '{text[:30]}...' ({voice})")
-    #     model = model_repository.synthesis_model()
-    #     model.voice = voice
-    #     model.language = lang
-    #     model.role = "good"
+    try:
+        log.info("Синтез речи для: '%s...' (voice=%s, lang=%s, speed=%.2f)",
+                 text[:40], voice, lang, norm_speed)
+        model = model_repository.synthesis_model()
+        model.voice = voice
+        model.language = lang
+        model.speed = norm_speed
+        model.role = role
 
-    #     result = model.synthesize(text, raw_format=False)
-    #     result.export(str_path, "wav")
-    #     return str_path, get_wav_duration(str_path)
-    # except Exception as e:
-    #     print(f"ошибка Yandex SpeechKit: {e}")
-    #     return "", 0.0
-    if YANDEX_API_KEY:
-        try:
-            print(f"синтез речи для: '{text[:40]}...' ({voice}, {lang}, speed={norm_speed})")
-            model = model_repository.synthesis_model()
-            model.voice = voice
-            model.language = lang
-            model.speed = norm_speed
-            model.role = role
+        result = model.synthesize(text, raw_format=False)
+        result.export(str_path, "wav")
+    except Exception as exc:
+        log.error("Ошибка Yandex SpeechKit при синтезе: %s", exc)
+        raise SpeechSynthesisError(
+            f"Не удалось синтезировать речь через Yandex SpeechKit: {exc}"
+        ) from exc
 
-            result = model.synthesize(text, raw_format=False)
-            result.export(str_path, "wav")
-            return str_path, get_wav_duration(str_path)
-        except Exception as e:
-            print(f"ошибка yandex speechkit, включен fallback: {e}")
+    return str_path, get_wav_duration(str_path)
 
-    # fallback путь: гарантируем файл, чтобы не ломать timeline
-    placeholder = _write_placeholder_wav(file_path, text)
-    return placeholder, get_wav_duration(placeholder)
 
-# backward-compatible wrappers for older live mode paths
+def _normalize_lang(lang: str) -> str:
+    """
+    Преобразует короткий код языка ('ru'/'en') в формат SpeechKit ('ru-RU'/'en-US').
+    Полные коды (с дефисом) пропускает как есть.
+    """
+    if not lang:
+        return "ru-RU"
+    if "-" in lang:
+        return lang
+    table = {"ru": "ru-RU", "en": "en-US"}
+    return table.get(lang.lower(), lang)
 
-def start_speech(filepath: str, tts: str, lang: str, voice: str):
-    audio_path, _ = generate_speech(tts, voice=voice, lang=lang)
+
+def start_speech(filepath: str, tts: str, lang: str, voice: str) -> None:
+    """
+    Backward-compatible обёртка для live mode.
+
+    Синтезирует TTS и копирует/перемещает результат по запрошенному пути filepath.
+    """
+    audio_path, _ = generate_speech(tts, voice=voice, lang=_normalize_lang(lang))
     if not audio_path:
         return
 
-    # Если путь назначения отличается от кэша, копируем файл
     if audio_path != filepath:
         try:
-            with open(audio_path, "rb") as src, open(filepath, "wb") as dst:
-                dst.write(src.read())
-        except Exception:
-            pass
+            shutil.copyfile(audio_path, filepath)
+        except OSError as exc:
+            log.warning("Не удалось скопировать аудио из кэша в %s: %s", filepath, exc)

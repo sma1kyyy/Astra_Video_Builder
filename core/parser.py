@@ -1,9 +1,6 @@
 from typing import List
-import logging as log
-from traceback import print_exc
 from yaml import safe_load
 
-# импорт схем
 from core.schemas.video_object import VideoObject
 from core.schemas.metadata_object import MetadataObject
 from core.schemas.act_object import ActObject
@@ -14,7 +11,6 @@ from core.schemas.audio_object import AudioObject
 from core.schemas.action_object import ActionObject
 from core.schemas.annotation_object import AnnotationObject
 
-# импорт ошибок
 from core.errors.no_required_attribute import NoRequiredAttribute
 from core.errors.extra_attributes import ExtraAttributes
 from core.errors.object_id_is_not_correct import ObjectIdIsntValid
@@ -22,10 +18,28 @@ from core.errors.no_value import NoValue
 from core.errors.incorrect_mode import IncorrectMode
 from core.errors.incorrect_value import IncorrectValue
 
+from core.utils.logger import LoggerFactory
+
+log = LoggerFactory.get_logger(__name__)
+
 VALID_OCR_TARGETS = {"overlay", "metadata", "both"}
 
+# Действия, для которых регистр их type-имени должен распознаваться как угодно.
+_ACTION_TYPE_ALIASES = {
+    "scrollup": "scrollUp",
+    "scrolldown": "scrollDown",
+    "scrollto": "scrollTo",
+}
+
+
+def _normalize_action_type(value):
+    if isinstance(value, str):
+        return _ACTION_TYPE_ALIASES.get(value.lower(), value)
+    return value
+
+
 def parse(filePath: str) -> VideoObject:
-    """парсит yaml-скрипт и возвращает объект видео с актами"""
+    """Парсит yaml-скрипт и возвращает объект видео с актами."""
     try:
         with open(filePath, encoding="utf-8") as stream:
             file = safe_load(stream)
@@ -42,13 +56,12 @@ def parse(filePath: str) -> VideoObject:
         acts_list = __parse_acts(acts, metadata_object.mode)
 
         return VideoObject(metadata=metadata_object, acts=acts_list)
-    except Exception as error:
-        print_exc()
-        log.error(f"критическая ошибка парсинга: {error}")
+    except Exception:
+        log.exception("Критическая ошибка парсинга YAML-скрипта %s", filePath)
         raise
 
+
 def __parse_acts(acts: dict, mode: str) -> List[ActObject]:
-    """проверяет структуру актов и сортирует их по id"""
     for key in acts.keys():
         if not key.startswith("act_"):
             raise ExtraAttributes(f"acts/{key}")
@@ -58,14 +71,10 @@ def __parse_acts(acts: dict, mode: str) -> List[ActObject]:
     except Exception:
         raise ObjectIdIsntValid("ошибка в id акта")
 
-    acts_list = []
-    for key in sorted_keys:
-        act = __parse_act(acts[key], key, mode)
-        acts_list.append(act)
-    return acts_list
+    return [__parse_act(acts[key], key, mode) for key in sorted_keys]
+
 
 def __parse_act(act: dict, act_key: str, mode: str) -> ActObject:
-    """парсит конкретный акт и его внутренние сцены"""
     if not act:
         raise NoValue(act_key)
 
@@ -78,8 +87,8 @@ def __parse_act(act: dict, act_key: str, mode: str) -> ActObject:
 
     return ActObject(name=name, scenes=scenes_list)
 
+
 def __parse_scenes(scenes: dict, mode: str) -> List[SceneObject]:
-    """сортировка и парсинг сцен внутри акта"""
     for key in scenes.keys():
         if not key.startswith("scene_"):
             raise ExtraAttributes(f"scenes/{key}")
@@ -88,20 +97,15 @@ def __parse_scenes(scenes: dict, mode: str) -> List[SceneObject]:
     except Exception:
         raise ObjectIdIsntValid("ошибка в id сцены")
 
-    scenes_list = []
-    for key in sorted_keys:
-        scene = __parse_scene(scenes[key], key, mode)
-        scenes_list.append(scene)
-    return scenes_list
+    return [__parse_scene(scenes[key], key, mode) for key in sorted_keys]
+
 
 def __parse_scene(scene: dict, scene_key: str, mode: str) -> SceneObject:
-    """детальный разбор параметров сцены"""
     if not scene:
         raise NoValue(scene_key)
 
     scene_payload = dict(scene)
 
-    # 1) забираем вложенные структуры
     name = scene_payload.pop("name", "New Scene")
     path = scene_payload.pop("path", None)
     images = __parse_images(scene_payload.pop("images", {}))
@@ -110,17 +114,14 @@ def __parse_scene(scene: dict, scene_key: str, mode: str) -> SceneObject:
     actions_raw = scene_payload.pop("actions", {})
     annotations_raw = scene_payload.pop("annotations", {})
 
-    # 2) валидация оставшихся простых полей
     valid_fields = SceneObject.get_static_attributes()
     for key in list(scene_payload.keys()):
         if key not in valid_fields:
             raise ExtraAttributes(f"scenes/{scene_key}/{key}")
 
-    # 3) проверка обязательных полей для режима
     if mode == "screenshot" and not path:
         raise NoRequiredAttribute(f"scenes/{scene_key}/path")
 
-    # 4) сборка объекта
     if mode == "live":
         actions = __parse_actions(actions_raw)
         return SceneObject(
@@ -147,8 +148,8 @@ def __parse_scene(scene: dict, scene_key: str, mode: str) -> SceneObject:
 
     raise IncorrectMode(mode)
 
+
 def __parse_annotations(annotations: dict) -> List[AnnotationObject]:
-    """полная валидация каждой аннотации + OCR полей"""
     if not annotations:
         return []
 
@@ -169,16 +170,15 @@ def __parse_annotations(annotations: dict) -> List[AnnotationObject]:
         if not item:
             raise NoValue(f"annotations/{key}")
 
-        #required = ["type", "transparency", "start_x", "start_y", "end_x", "end_y"]
         required = ["type", "transparency"]
         for req in required:
             if item.get(req) is None:
                 raise NoRequiredAttribute(f"annotations/{key}/{req}")
 
-        # координаты обязательны только при ручной разметке.
-        # если задан target_text, координаты можно не указывать — они будут найдены автоматически.
         has_target_text = bool((item.get("target_text") or "").strip())
-        has_manual_coords = all(item.get(req) is not None for req in ["start_x", "start_y", "end_x", "end_y"])
+        has_manual_coords = all(
+            item.get(req) is not None for req in ["start_x", "start_y", "end_x", "end_y"]
+        )
 
         if not has_target_text and not has_manual_coords:
             for req in ["start_x", "start_y", "end_x", "end_y"]:
@@ -194,7 +194,6 @@ def __parse_annotations(annotations: dict) -> List[AnnotationObject]:
         if item.get("text") and item.get("type") != "square":
             raise ExtraAttributes(f"annotations/{key}/text")
 
-        # OCR валидация
         ocr_target = item.get("ocr_target", "overlay")
         if ocr_target not in VALID_OCR_TARGETS:
             raise IncorrectValue(f"annotations/{key}/ocr_target={ocr_target}")
@@ -216,8 +215,8 @@ def __parse_annotations(annotations: dict) -> List[AnnotationObject]:
 
     return result
 
+
 def __parse_actions(actions: dict) -> List[ActionObject]:
-    """детальная валидация действий с match-case"""
     if not actions:
         return []
 
@@ -229,9 +228,10 @@ def __parse_actions(actions: dict) -> List[ActionObject]:
         if not action:
             raise NoValue(f"actions/{key}")
 
-        a_type = action.get("type")
+        a_type = _normalize_action_type(action.get("type"))
         if not a_type:
             raise NoRequiredAttribute(f"actions/{key}/type")
+        action["type"] = a_type
 
         match a_type:
             case "navigate":
@@ -243,14 +243,18 @@ def __parse_actions(actions: dict) -> List[ActionObject]:
                 if a_type == "input" and not action.get("text"):
                     raise NoRequiredAttribute(f"actions/{key}/text")
             case "wait":
-                if not action.get("duration"):
+                if action.get("duration") is None:
                     raise NoRequiredAttribute(f"actions/{key}/duration")
             case "scrollUp" | "scrollDown":
-                if not action.get("point"):
+                if action.get("point") is None:
                     raise NoRequiredAttribute(f"actions/{key}/point")
+            case "scrollTo":
+                if not action.get("selector"):
+                    raise NoRequiredAttribute(f"actions/{key}/selector")
 
         result.append(ActionObject(**action))
     return result
+
 
 def __parse_images(images: dict) -> List[ImageObject]:
     result = []
@@ -261,6 +265,7 @@ def __parse_images(images: dict) -> List[ImageObject]:
         result.append(ImageObject(**img))
     return result
 
+
 def __parse_texts(texts: dict) -> List[TextObject]:
     result = []
     for key, txt in texts.items():
@@ -270,6 +275,7 @@ def __parse_texts(texts: dict) -> List[TextObject]:
         result.append(TextObject(**txt))
     return result
 
+
 def __parse_audios(audios: dict) -> List[AudioObject]:
     result = []
     for key, aud in audios.items():
@@ -278,6 +284,7 @@ def __parse_audios(audios: dict) -> List[AudioObject]:
             raise NoRequiredAttribute(f"audio/{key}")
         result.append(AudioObject(**aud))
     return result
+
 
 def __parse_metadata(metadata: dict) -> MetadataObject:
     if not metadata.get("title") or not metadata.get("resolution"):

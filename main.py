@@ -1,96 +1,114 @@
-# главный файл запуска системы
-import sys
-import os
-# sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
+#!/usr/bin/env python3
 import argparse
-import traceback
+import sys
 from os import path
-from core.utils.speech import start_speech, get_wav_duration
-from engines.live.screen_recorder import start_record, stop_record
-from core.parser import parse
-from engines.live.video_engine import live_recording_render
-from engines.screenshot.screenshot_engine import process_screenshot_video
 from time import time
 
-# настройка аргументов командной строки
-parser = argparse.ArgumentParser(description="генерация роликов из yaml скриптов")
-parser.add_argument("-f", "--file", help="путь к yaml файлу")
-parser.add_argument("-o", "--output", help="директория для сохранения результата")
+from core.parser import parse
+from core.utils.logger import LoggerFactory
+
+log = LoggerFactory.get_logger(__name__)
+
+cli = argparse.ArgumentParser(description="Генерация роликов из YAML-скриптов")
+cli.add_argument("-f", "--file", required=True, help="путь к yaml файлу")
+cli.add_argument("-o", "--output", required=True, help="директория для сохранения результата")
 
 
-def main():
-    args = parser.parse_args()
-
-    # базовая проверка входных данных
-    if not args.file or not args.output:
-        print("ошибка: укажите обязательные параметры -f и -o")
-        return
-
+def _validate_args(args) -> bool:
     if not path.exists(args.file):
-        print(f"ошибка: файл {args.file} не найден")
-        return
-
+        log.error("Файл %s не найден", args.file)
+        return False
     if not path.isdir(args.output):
-        print(f"ошибка: директория {args.output} не существует")
-        return
+        log.error("Директория %s не существует", args.output)
+        return False
+    return True
 
-    # запуск процесса
+
+def _run_screenshot_mode(video, output_dir: str) -> None:
+    from engines.screenshot.screenshot_engine import process_screenshot_video
+    process_screenshot_video(video, output_dir)
+
+
+def _run_live_mode(video, output_dir: str) -> None:
+    from core.utils.speech import get_wav_duration, start_speech
+    from engines.live.browser_engine import get_driver, quit_driver, start_actions
+    from engines.live.screen_recorder import start_record, stop_record
+    from engines.live.video_engine import live_recording_render
+
+    screen_recording_process = None
+    scene_times: list = []
+    render_attempted = False
+
     try:
-        # парсинг превращает yaml в дерево объектов (video -> acts -> scenes)
-        print(f"чтение скрипта: {args.file}")
+        screen_recording_process = start_record(video.metadata, output_dir)
+
+        warmup_start = time()
+        driver = get_driver()
+        warmup_end = time() - warmup_start
+        log.info("Browser warmup занял %.2fs", warmup_end)
+        scene_times.append([0, 0.0, warmup_end])
+
+        for i, scene in enumerate(video.acts[0].scenes):
+            scene_id = i + 1
+            start_scene = scene_times[-1][2]
+            scene_start_time = time()
+            tts_time = 0.0
+
+            if scene.tts:
+                tts_path = f"{output_dir}/scene_{scene_id}.wav"
+                start_speech(tts_path, scene.tts, video.metadata.language, scene.voice)
+                tts_time = get_wav_duration(tts_path)
+
+            start_actions(scene.actions, tts_time)
+
+            end_scene = time() - scene_start_time + start_scene
+            scene_times.append([scene_id, start_scene, end_scene])
+    except Exception:
+        log.exception("Ошибка во время выполнения live-сценария")
+    finally:
+        stop_record(screen_recording_process)
+        quit_driver()
+
+        if len(scene_times) > 1:
+            render_attempted = True
+            try:
+                final_path = live_recording_render(
+                    output_dir,
+                    video.metadata.title,
+                    scene_times,
+                    save_files=video.metadata.save_files,
+                )
+                log.info("Видео успешно сохранено: %s", final_path)
+            except Exception:
+                log.exception("Не удалось смонтировать итоговое видео")
+
+        if not render_attempted:
+            log.error("Рендер не был запущен: нет валидных сцен.")
+
+
+def main() -> int:
+    args = cli.parse_args()
+    if not _validate_args(args):
+        return 2
+
+    try:
+        log.info("Чтение скрипта: %s", args.file)
         video = parse(args.file)
 
-        # проверка режима работы
-        if video.metadata.mode == "screenshot":
-            process_screenshot_video(video, args.output)
-        elif video.metadata.mode == "live":
-            from engines.live.browser_engine import start_actions
-            # захват экрана
-            screen_recording_process = start_record(video.metadata, args.output)
+        match video.metadata.mode:
+            case "screenshot":
+                _run_screenshot_mode(video, args.output)
+            case "live":
+                _run_live_mode(video, args.output)
+            case other:
+                log.error("Неизвестный режим: %s", other)
+                return 2
+    except Exception:
+        log.exception("Критическая ошибка")
+        return 1
 
-            # выполнение действий для live recording mode
-            # список с парами целых чисел,
-            # 1е значение - id сцены (index + 1)
-            # 2е значение - время начала сцены
-            # 3е - её конец
-            # отсчёт идёт в секундах с начала всего ролика
-            scene_times = [
-                [0, 0, 1] # 1 сцена будет обрезана из-за загрузки браузера
-            ]
-            try:
-                for i, scene in enumerate(video.acts[0].scenes):
-                    start_scene = scene_times[i][-1]
-                    scene_time = time()
-                    tts_time = 0
-                    if scene.tts:
-                        tts_path = f"{args.output}/scene_{i + 1}.wav"
-                        start_speech(tts_path, scene.tts, video.metadata.language, scene.voice)
-                        tts_time = get_wav_duration(tts_path)
-
-                    # начало выполнения основных действий
-                    start_actions(scene.actions, tts_time)
-
-                    # добавление таймингов сцены
-                    end_scene = time() - scene_time + start_scene
-                    scene_times.append([i + 1, start_scene, end_scene])
-            except Exception as e:
-                print(e)
-                print("ERROR WAS OCCURED")
-                traceback.print_exc()
-                return
-            finally:
-                # остановка захвата экрана и сохранение
-                stop_record(screen_recording_process)
-
-            live_recording_render(args.output, video.metadata.title, scene_times, False)
-        else:
-            print(f"ошибка: неизвестный режим {video.metadata.mode}")
-
-    except Exception as e:
-        print(f"произошла критическая ошибка: {e}")
-        traceback.print_exc()
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

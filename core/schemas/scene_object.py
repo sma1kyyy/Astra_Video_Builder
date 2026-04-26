@@ -1,6 +1,5 @@
-# модель переведена на dataclass, чтобы избавиться от инитов
 from pydantic.dataclasses import dataclass
-from pydantic import Field, ConfigDict, model_validator
+from pydantic import Field, ConfigDict
 from dataclasses import fields
 from typing import List, Optional, Literal
 
@@ -107,50 +106,5 @@ class SceneObject(ComponentObject):
         excluded = ["images", "audio", "texts", "actions", "annotations"]
         return [f.name for f in fields(cls) if f.name not in excluded]
 
-    @model_validator(mode="after")
-    def post_init(self) -> "SceneObject":
-        #assert len(self.annotations) == 0 and not self.path, "There must be path for screenshot or list with annotations."
-        
-        return self
-
     def __repr__(self):
         return f"<Scene '{self.name}' | dur: {self.duration}s>"
-
-# @dataclass
-# class SceneObject(ComponentObject):
-#     path: str
-#     duration: float = 5.0
-#     name: str = "New Scene"
-#     tts: str = ""
-#     voice: str = "zahar"
-#     subtitles: bool = False
-#     subplace: str = "down"
-#     effect: str = "without"
-#     transition: str = "without"
-#     transpeed: float = 1.0
-
-#     # hard объекты (списки)
-#     images: List[ImageObject] = field(default_factory=list)
-#     audio: List[AudioObject] = field(default_factory=list)
-#     texts: List[TextObject] = field(default_factory=list)
-#     actions: List[ActionObject] = field(default_factory=list)
-#     annotations: List[AnnotationObject] = field(default_factory=list)
-
-#     @classmethod
-#     def get_static_attributes(cls) -> List[str]:
-#         """
-#         Автоматически возвращает список всех простых полей (атрибутов),
-#         которые не являются списками объектов.
-#         """
-#         excluded = ["images", "audio", "texts", "actions", "annotations"]
-#         return [f.name for f in fields(cls) if f.name not in excluded]
-
-#     def __post_init__(self):
-#         # валидация значений
-#         if self.duration < 0:
-#             self.duration = 1.0
-#         if self.transpeed < 0:
-#             self.transpeed = 0.5
-
-#     def __repr__(self):
-#         return f"<Scene '{self.name}' | dur: {self.duration}s>"

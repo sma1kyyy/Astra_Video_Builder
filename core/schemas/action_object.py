@@ -1,63 +1,73 @@
 from pydantic.dataclasses import dataclass
-from pydantic import Field, ConfigDict, model_validator
-from typing import List, Optional, Literal
+from pydantic import Field, ConfigDict, model_validator, field_validator
+from typing import Optional, Literal
+
 from core.schemas.ComponentObject import ComponentObject
+
+ActionType = Literal[
+    "navigate", "click", "input", "scrollUp", "scrollDown", "scrollTo", "wait"
+]
+
+_SCROLL_ALIASES = {
+    "scrollup": "scrollUp",
+    "scrolldown": "scrollDown",
+    "scrollto": "scrollTo",
+}
+
 
 @dataclass(config=ConfigDict(arbitrary_types_allowed=True))
 class ActionObject(ComponentObject):
-    """Шаблон для всех объектов Actions"""
-    type: Literal["navigate", "click", "input", "scrollUp", "scrollDown", "scrollTo", "wait"] = Field(
+    type: ActionType = Field(
         ...,
-        description="Тип действия."
+        description="Тип действия.",
     )
     url: Optional[str] = Field(
         default=None,
         description="URL (для типа Navigate)",
-        pattern=r"(https?://[^\s/$.?#].[^\s]*)" # for url
+        pattern=r"(https?://[^\s/$.?#].[^\s]*)",
     )
     selector: Optional[str] = Field(
         default=None,
         description="Selector для XPath (selenium)",
-        pattern=r"^(/(?:[^/]+|\[[^\]]+\])*|//[^/]+(?:/[^/]+|\[[^\]]+\])*|\(.*\))$" # for xpath
+        pattern=r"^(/(?:[^/]+|\[[^\]]+\])*|//[^/]+(?:/[^/]+|\[[^\]]+\])*|\(.*\))$",
     )
-    text: Optional[str] = Field(
-        default="",
-        description="Вводимый в поле ввода текст."
-    )
+    text: Optional[str] = Field(default="", description="Вводимый в поле ввода текст.")
     duration: Optional[int] = Field(
         default=0,
-        description="Длительность для wait.",
-        ge=0
+        description="Длительность для wait, в секундах.",
+        ge=0,
     )
     point: Optional[int] = Field(
         default=0,
-        description="Количество поинтов, на которое будет осуществлен скролл.",
-        ge=0
+        description="Количество поинтов скролла.",
+        ge=0,
     )
     behavior: Literal["smooth", "none"] = Field(
         default="none",
-        description="Поведение скролла."
+        description="Поведение скролла.",
     )
-    wait: Optional[int] = Field(
-        default=0,
-        description="Ожидать перед следующим кадром в секундах.",
-        ge=0
+    wait: int = Field(
+        default=1,
+        description="Пауза перед действием в секундах.",
+        ge=0,
     )
 
+    @field_validator("type", mode="before")
+    @classmethod
+    def _normalize_type(cls, value):
+        if isinstance(value, str):
+            return _SCROLL_ALIASES.get(value.lower(), value)
+        return value
+
     @model_validator(mode="after")
-    def validate_behavior(self) -> "ActionObject":
+    def _validate_required_fields(self) -> "ActionObject":
         if self.behavior == "none":
             self.behavior = None
 
-        # "navigate", "click", "input", "scrollUp", "scrollDown", "scrollTo", "wait"
         match self.type:
             case "navigate":
                 assert self.url is not None, "With navigate must be URL!"
-            case "click":
-                assert self.selector is not None, "With click must be SELECTOR!"
-            case "input":
-                assert self.selector is not None, "With input must be SELECTOR!"
-            case "scrollTo":
-                assert self.selector is not None, "With scrollTo must be SELECTOR!"
-        
+            case "click" | "input" | "scrollTo":
+                assert self.selector is not None, f"With {self.type} must be SELECTOR!"
+
         return self

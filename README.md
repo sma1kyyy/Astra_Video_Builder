@@ -10,14 +10,16 @@
 
 # Как использовать
 ## Необходимые требования к окружению
-- [Python версии 1.13+](https://www.python.org/downloads/release/python-31311/)
+- [Python версии 3.13+](https://www.python.org/downloads/release/python-31311/)
 - [Пакетный менеджер UV для установки зависимостей](https://docs.astral.sh/uv/getting-started/installation/)
-##### Для режима Live Recording
-- [FFMPEG (Если у вас окружение любое, кроме wayland)](https://www.ffmpeg.org/)
-- [Утилита wf-recorder для записи экрана (если у вас wayland, например hyprland)](https://github.com/ammen99/wf-recorder)
+- [FFMPEG](https://www.ffmpeg.org/) — нужен и для Live Recording, и для Screenshot Mode (под капотом MoviePy вызывает ffmpeg при сборке итогового видео).
+##### Дополнительно для режима Live Recording
+- [Утилита gpu-screen-recorder для записи Wayland-сессий](https://git.dec05eba.com/gpu-screen-recorder/)
 
-    *Примечание. wf-recorder работает плохо, иногда завершая запись заранее. Проблема пока на стадии решения, но не всегда получится записывать видео.*
-- [Chrome Browser](https://www.google.com/intl/ru_ru/chrome/) или [Firefox (ПОКА НЕ РАБОТАЕТ)](https://www.firefox.com/ru/?utm_campaign=SET_DEFAULT_BROWSER)
+    *Примечание. Для Wayland (Hyprland, GNOME, KDE Plasma) используется gpu-screen-recorder. Поддерживает скрытие курсора (`-cursor no`).*
+- [Chrome Browser](https://www.google.com/intl/ru_ru/chrome/)
+
+    *Поддержка Firefox на данный момент не реализована.*
 
 ## Установка
 Склонируйте репозиторий в директорию с проектом или установите последнюю версюю релиза
