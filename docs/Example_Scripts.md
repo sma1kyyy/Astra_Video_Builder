@@ -1,10 +1,11 @@
 # Примеры Live Recording Mode
-## 1.
-```
+## 1. Документация Astra Automation (Chrome, с TTS)
+```yaml
 metadata:
     title: TestVideo
     resolution: 1920x1080
     cursor: false
+    browser: chrome
 
 acts:
   act_1:
@@ -82,12 +83,13 @@ acts:
             duration: 3
 ```
 
-## 2.
-```
+## 2. The-internet (Firefox, с курсором)
+```yaml
 metadata:
     title: TestVideo2
     resolution: 1920x1080
     cursor: true
+    browser: firefox
 
 acts:
   act_1:
@@ -147,8 +149,8 @@ acts:
             duration: 2
 ```
 
-## 3.
-```
+## 3. Astra Automation landing (форма обратной связи)
+```yaml
 metadata:
         title: TestVideo2
         resolution: 1920x1080
