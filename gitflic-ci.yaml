@@ -1,25 +1,48 @@
-# CI/CD конфигурация для проекта генерации демонстрационных роликов
-# Используется Go-образ как универсальный CI-раннер
-# Основной код проекта реализован на Python
+# CI/CD pipeline для AA Video Builder.
+# Триггерится на push в любую ветку и на merge requests.
 
-image: golang:1.22
+image: python:3.13-slim
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "push"
 
 stages:
+  - lint
   - test
-  - build
 
-test:
+variables:
+  UV_CACHE_DIR: .uv-cache
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  PYTHONDONTWRITEBYTECODE: "1"
+
+cache:
+  key: uv-py313
+  paths:
+    - .uv-cache
+    - .venv
+
+before_script:
+  - apt-get update -qq && apt-get install -qq -y --no-install-recommends curl ca-certificates ffmpeg
+  - curl -LsSf https://astral.sh/uv/install.sh | sh
+  - export PATH="$HOME/.local/bin:$PATH"
+  - uv sync --group dev
+
+lint:syntax:
+  stage: lint
+  script:
+    - export PATH="$HOME/.local/bin:$PATH"
+    - uv run python -m compileall -q core engines main.py
+    - uv run python -c "import main; print('main importable')"
+
+test:unit:
   stage: test
   script:
-    - 'echo CI stage test'
-    - 'go version'
-    - 'echo Проверка структуры проекта'
-    - 'test -d src'
-    - 'test -f src/main.py'
-    - 'test -d scripts'
-
-build:
-  stage: build
-  script:
-    - 'echo CI stage build'
-    - 'echo Сборка не требуется на этапе MVP'
+    - export PATH="$HOME/.local/bin:$PATH"
+    - uv run pytest tests/ -v --tb=short
+  artifacts:
+    when: always
+    paths:
+      - .pytest_cache
+    expire_in: 1 week

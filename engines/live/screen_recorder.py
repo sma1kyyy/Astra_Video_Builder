@@ -1,5 +1,6 @@
 import os
 import platform
+import re
 import signal
 import subprocess
 from typing import Optional, Tuple
@@ -20,6 +21,32 @@ class ScreenRecorderError(RuntimeError):
     pass
 
 
+def _detect_macos_screen_index() -> str:
+    # avfoundation назначает индексы устройств динамически (зависят от подключённой
+    # периферии: iPhone Continuity Camera, OBS virtual cam и т. д.). Парсим вывод
+    # `-list_devices` и ищем первый "Capture screen N".
+    try:
+        result = subprocess.run(
+            ["ffmpeg", "-f", "avfoundation", "-list_devices", "true", "-i", ""],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
+        raise UnsupportedPlatformError(
+            f"Не удалось определить screen device через ffmpeg: {exc}"
+        ) from exc
+
+    output = (result.stderr or "") + (result.stdout or "")
+    match = re.search(r"\[(\d+)\]\s+Capture screen \d+", output)
+    if not match:
+        raise UnsupportedPlatformError(
+            "ffmpeg не сообщил ни одного 'Capture screen' устройства. "
+            "Проверьте разрешение Screen Recording в System Settings → Privacy."
+        )
+    return match.group(1)
+
+
 def get_input_params() -> Tuple[str, str]:
     """Определяет бэкенд записи экрана и input device для текущей ОС/среды.
 
@@ -34,7 +61,8 @@ def get_input_params() -> Tuple[str, str]:
         if os_name == "Windows":
             return "gdigrab", "desktop"
         if os_name == "Darwin":
-            return "avfoundation", "1:0"
+            screen_idx = _detect_macos_screen_index()
+            return "avfoundation", f"{screen_idx}:none"
         if os_name == "Linux":
             is_wayland = (
                 os.environ.get("XDG_SESSION_TYPE") == "wayland"
@@ -77,7 +105,9 @@ def _start_ffmpeg(filepath: str, input_format: str, input_device: str,
                   fps: int, cursor: bool) -> subprocess.Popen:
     """Запуск ffmpeg для Xorg/Windows/macOS."""
     input_kwargs = {"format": input_format, "framerate": fps}
-    if not cursor:
+    if input_format == "avfoundation":
+        input_kwargs["capture_cursor"] = 1 if cursor else 0
+    elif not cursor:
         input_kwargs["draw_mouse"] = 0
 
     return (

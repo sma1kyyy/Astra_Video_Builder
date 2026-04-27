@@ -28,3 +28,17 @@ dependencies = [
 members = [
     "src",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-mock>=3.12",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+addopts = "-ra --strict-markers"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]

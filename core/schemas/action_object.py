@@ -29,7 +29,7 @@ class ActionObject(ComponentObject):
     selector: Optional[str] = Field(
         default=None,
         description="Selector для XPath (selenium)",
-        pattern=r"^(/(?:[^/]+|\[[^\]]+\])*|//[^/]+(?:/[^/]+|\[[^\]]+\])*|\(.*\))$",
+        pattern=r"^(/.+|\(.+\).*)$",
     )
     text: Optional[str] = Field(default="", description="Вводимый в поле ввода текст.")
     duration: Optional[int] = Field(
@@ -51,12 +51,27 @@ class ActionObject(ComponentObject):
         description="Пауза перед действием в секундах.",
         ge=0,
     )
+    enter: bool = Field(
+        default=True,
+        description="Нажимать ли ENTER после input. Только для type=input.",
+    )
 
     @field_validator("type", mode="before")
     @classmethod
     def _normalize_type(cls, value):
         if isinstance(value, str):
             return _SCROLL_ALIASES.get(value.lower(), value)
+        return value
+
+    @field_validator("text", "url", "selector", mode="before")
+    @classmethod
+    def _coerce_str(cls, value):
+        if value is None or isinstance(value, str):
+            return value
+        if isinstance(value, bool):
+            return str(value).lower()
+        if isinstance(value, (int, float)):
+            return str(value)
         return value
 
     @model_validator(mode="after")

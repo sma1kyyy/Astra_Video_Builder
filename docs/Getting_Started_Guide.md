@@ -76,3 +76,23 @@ PY
 [Подробная информация по режиму Live Recording](Live_Recording_Mode_Guide.md)
 
 [Столкнулись с проблемами?](Troubleshooting_Guide.md)
+
+## Live Recording. Введение.
+1. Создайте каталог, например `data`, в котором вы будете хранить yaml-скрипт и итоговое видео.
+2. Создайте в этом каталоге файл `script.yaml`.
+3. Вставьте в него любой пример из [примеров](Example_Scripts.md) для режима Live Recording Mode.
+4. Убедитесь, что установлены:
+   - Chrome или Firefox (выбор через `metadata.browser`),
+   - `gpu-screen-recorder` для Wayland или `ffmpeg` для Xorg/Windows/macOS,
+   - стабильное интернет-соединение (для скачивания драйвера и работы браузера).
+5. Запустите команду:
+   ```bash
+   uv run python main.py -f data/script.yaml -o data
+   ```
+   (или `./main.py -f data/script.yaml -o data` — у `main.py` есть shebang).
+6. Дождитесь закрытия браузера. Даже если кажется, что съёмка завершилась, монтаж итогового видео ещё может идти.
+7. Итоговое видео сохраняется в указанный каталог `-o` под именем `<metadata.title>.mp4`.
+
+[Подробная информация по режиму Live Recording](Live_Recording_Mode_Guide.md)
+
+[Столкнулись с проблемами?](Troubleshooting_Guide.md)
