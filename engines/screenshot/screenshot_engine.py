@@ -345,7 +345,7 @@ class ScreenshotEngine:
         subtitle_text: str,
         scene_duration: float,
         audio_duration: float,
-        subtitle_duration: float,
+        #subtitle_duration: float,
         video_w: int,
         video_h: int,
     ) -> List:

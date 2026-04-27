@@ -39,7 +39,7 @@ acts:
         name: highlight_templates
         path: input/screen2.png
         duration: 6
-        tts: "найдем секцию templates с помощью smart annotation. если ocr не сработает, останутся ручные координаты"
+        tts: "поиск секций, проверка работы ocr без ручных координат, smart annotations"
         voice: jane
         subtitles: true
         subtitle_style: contrast
@@ -50,7 +50,7 @@ acts:
           annotation_1:
             type: square
             transparency: 0.22
-            target_text: "Templates"
+            target_text: "поле"
             start_x: 1020
             start_y: 210
             end_x: 1720
@@ -65,7 +65,7 @@ acts:
           annotation_2:
             type: arrow
             transparency: 0.06
-            target_text: "Templates"
+            target_text: "поле"
             start_x: 880
             start_y: 620
             end_x: 1240
