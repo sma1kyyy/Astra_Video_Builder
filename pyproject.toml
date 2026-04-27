@@ -5,6 +5,8 @@ description = "AA Video Builder — генерация демо-роликов �
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "redis>=6.0.0",
+    "celery>=5.5.3",
     "audioop-lts>=0.2.2",
     "ffmpeg-python>=0.2.0",
     "imageio-ffmpeg>=0.6.0",

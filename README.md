@@ -40,6 +40,27 @@ source .venv/bin/activate
 ```
 python -m uv sync
 ```
+
+## Очередь задач (Celery + Redis)
+Для фонового рендера без API добавлена внутренняя очередь задач. Запуск через Docker Compose:
+```bash
+docker compose up -d redis worker
+```
+После запуска worker можно поставить задачу в очередь из CLI:
+```bash
+uv run python main.py -f examples/screenshot/screenshot_minimal.yaml -o output --queue
+```
+Поставить и дождаться результата:
+```bash
+uv run python main.py -f examples/screenshot/screenshot_minimal.yaml -o output --queue --wait
+```
+Проверить статус уже поставленной задачи:
+```bash
+uv run python main.py -o output --task-id <task_id>
+```
+По умолчанию используются переменные:
+- `CELERY_BROKER_URL=redis://redis:6379/0`
+- `CELERY_RESULT_BACKEND=redis://redis:6379/1`
 Пошаговые инструкции по развёртыванию для Linux/macOS/Windows доступны в отдельном документе:
 - [Deployment Guide](docs/Deployment_Guide.md)
 

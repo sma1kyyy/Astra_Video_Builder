@@ -10,11 +10,39 @@ from core.utils.logger import LoggerFactory
 log = LoggerFactory.get_logger(__name__)
 
 cli = argparse.ArgumentParser(description="Генерация роликов из YAML-скриптов")
-cli.add_argument("-f", "--file", required=True, help="путь к yaml файлу")
+cli.add_argument("-f", "--file", required=False, help="путь к yaml файлу")
 cli.add_argument("-o", "--output", required=True, help="каталог для сохранения результата")
+cli.add_argument(
+    "--queue",
+    action="store_true",
+    help="Поставить задачу в Celery/Redis очередь вместо немедленного запуска",
+)
+cli.add_argument(
+    "--wait",
+    action="store_true",
+    help="Дождаться завершения queued-задачи и вернуть код результата",
+)
+cli.add_argument(
+    "--task-id",
+    help="Проверить статус существующей queued-задачи по task id",
+)
+cli.add_argument(
+    "--timeout",
+    type=int,
+    default=3600,
+    help="Таймаут ожидания queued-задачи в секундах (по умолчанию: 3600)",
+)
+
 
 
 def _validate_args(args) -> bool:
+    if args.task_id:
+        return True
+
+    if not args.file:
+        log.error("Нужно передать --file, если не используется --task-id")
+        return False
+    
     if not path.exists(args.file):
         log.error("Файл %s не найден", args.file)
         return False
@@ -24,12 +52,13 @@ def _validate_args(args) -> bool:
     return True
 
 
-def _run_screenshot_mode(video, output_dir: str) -> None:
+def _run_screenshot_mode(video, output_dir: str) -> str:
     from engines.screenshot.screenshot_engine import process_screenshot_video
-    process_screenshot_video(video, output_dir)
+    #process_screenshot_video(video, output_dir)
+    return process_screenshot_video(video, output_dir)
 
 
-def _run_live_mode(video, output_dir: str) -> None:
+def _run_live_mode(video, output_dir: str) -> str | None:
     from time import sleep
 
     from core.utils.speech import get_wav_duration, start_speech
@@ -41,6 +70,7 @@ def _run_live_mode(video, output_dir: str) -> None:
     screen_recording_process = None
     scene_times: list = []
     render_attempted = False
+    final_path = None
 
     try:
         driver = get_driver(video.metadata.browser)
@@ -108,11 +138,70 @@ def _run_live_mode(video, output_dir: str) -> None:
         if not render_attempted:
             log.error("Рендер не был запущен: нет валидных сцен.")
 
+    return final_path
+
+
+def process_video(file_path: str, output_dir: str) -> dict:
+    log.info("Чтение скрипта: %s", file_path)
+    video = parse(file_path)
+
+    match video.metadata.mode:
+        case "screenshot":
+            output_file = _run_screenshot_mode(video, output_dir)
+        case "live":
+            output_file = _run_live_mode(video, output_dir)
+        case other:
+            log.error("Неизвестный режим: %s", other)
+            raise ValueError(f"Неизвестный режим: {other}")
+
+    return {
+        "status": "success",
+        "mode": video.metadata.mode,
+        "output_file": output_file,
+    }
+
+
+def _check_task_status(task_id: str) -> int:
+    from core.queue.celery_app import celery_app
+
+    result = celery_app.AsyncResult(task_id)
+    log.info("Task %s state: %s", task_id, result.state)
+
+    if result.ready():
+        if result.successful():
+            log.info("Task result: %s", result.result)
+            return 0
+        log.error("Task failed: %s", result.result)
+        return 1
+
+    return 0
+
+
+def _enqueue_video(args) -> int:
+    from core.queue.tasks import render_video_task
+
+    task = render_video_task.delay(args.file, args.output)
+    log.info("Задача поставлена в очередь. task_id=%s", task.id)
+
+    if not args.wait:
+        return 0
+
+    log.info("Ожидание завершения task_id=%s (timeout=%ss)", task.id, args.timeout)
+    try:
+        result = task.get(timeout=args.timeout)
+        log.info("Задача завершена успешно: %s", result)
+        return 0
+    except Exception:
+        log.exception("Ошибка queued-задачи task_id=%s", task.id)
+        return 1
 
 def main() -> int:
     args = cli.parse_args()
     if not _validate_args(args):
         return 2
+    
+    if args.task_id:
+        return _check_task_status(args.task_id)
 
     try:
         log.info("Чтение скрипта: %s", args.file)
@@ -126,6 +215,11 @@ def main() -> int:
             case other:
                 log.error("Неизвестный режим: %s", other)
                 return 2
+        if args.queue:
+            return _enqueue_video(args)
+
+        process_video(args.file, args.output)
+        
     except Exception:
         log.exception("Критическая ошибка")
         return 1

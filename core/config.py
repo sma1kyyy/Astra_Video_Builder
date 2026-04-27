@@ -36,6 +36,18 @@ class AppSettings(BaseSettings):
         description="API-ключ Yandex SpeechKit. Обязателен только при использовании TTS.",
     )
 
+    celery_broker_url: str = Field(
+        default="redis://redis:6379/0",
+        validation_alias="CELERY_BROKER_URL",
+        description="URL брокера Celery (Redis).",
+    )
+
+    celery_result_backend: str = Field(
+        default="redis://redis:6379/1",
+        validation_alias="CELERY_RESULT_BACKEND",
+        description="URL backend Celery для хранения статусов задач.",
+    )
+
     log_level: str = Field(
         default="INFO",
         validation_alias="AA_LOG_LEVEL",
