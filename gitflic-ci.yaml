@@ -1,7 +1,12 @@
 # CI/CD pipeline для AA Video Builder.
-# Запускает синтаксис-чек и unit-тесты Live Recording Mode на каждом push/MR.
+# Триггерится на push в любую ветку и на merge requests.
 
 image: python:3.13-slim
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "push"
 
 stages:
   - lint
