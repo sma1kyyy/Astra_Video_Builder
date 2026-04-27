@@ -25,7 +25,7 @@ uv run python main.py -f <script.yaml> -o <output_dir>
 
 ### пример
 ```bash
-uv run main.py -f examples/screenshot_minimal.yaml -o output
+uv run python main.py -f examples/screenshot/screenshot_minimal.yaml -o output
 ```
 
 ## screenshot mode runtime поведение

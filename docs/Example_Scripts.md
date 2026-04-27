@@ -1,4 +1,9 @@
 # Примеры Live Recording Mode
+Готовые файлы в репозитории:
+- `examples/liveRecording/astra_doc_example.yaml`
+- `examples/screenshot/screenshot_minimal.yaml`
+- `examples/screenshot/screenshot_extended_demo.yaml`
+
 ## 1. Документация Astra Automation (Chrome, с TTS)
 ```yaml
 metadata:
@@ -450,6 +455,40 @@ acts:
             auto_from: left
 ```
 
+## 3.1 шаблон line / darrow + subplace
+```yaml
+metadata:
+  title: lines_and_distance_demo
+  resolution: 1920x1080
+  mode: screenshot
+  fps: 24
+
+acts:
+  act_1:
+    scenes:
+      scene_1:
+        path: input/screen1.png
+        duration: 5
+        tts: "показываем связь и расстояние между элементами"
+        subtitles: true
+        subplace: up
+        subtitle_style: contrast
+        annotations:
+          annotation_1:
+            type: line
+            transparency: 0.0
+            start_x: 210
+            start_y: 170
+            end_x: 760
+            end_y: 420
+          annotation_2:
+            type: darrow
+            transparency: 0.0
+            start_x: 300
+            start_y: 500
+            end_x: 1200
+            end_y: 500
+```
 
 ## 4. расширенный демонстрационный сценарий
 ```

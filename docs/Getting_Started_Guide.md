@@ -95,4 +95,12 @@ PY
 
 [Подробная информация по режиму Live Recording](Live_Recording_Mode_Guide.md)
 
+Для Windows (PowerShell):
+```powershell
+python -m uv sync
+.venv\Scripts\Activate.ps1
+```
+Скопируйте `.env.example` в `.env` и заполните `YANDEX_API_KEY` (нужен только если используете TTS).
+Если нужна детальная установка по ОС — см. [Deployment Guide](Deployment_Guide.md).
+
 [Столкнулись с проблемами?](Troubleshooting_Guide.md)

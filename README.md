@@ -40,6 +40,8 @@ source .venv/bin/activate
 ```
 python -m uv sync
 ```
+Пошаговые инструкции по развёртыванию для Linux/macOS/Windows доступны в отдельном документе:
+- [Deployment Guide](docs/Deployment_Guide.md)
 
 Для использования перейдите в [руководство для начинающих](docs/Getting_Started_Guide.md).
 
@@ -53,3 +55,4 @@ python -m uv sync
 7. [Руководство по оптимизации](docs/Performance_Tuning.md)
 8. [Руководство по написанию YAML-скриптов](docs/Script_Format_Specification.md)
 9. [FAQ](docs/Troubleshooting_Guide.md)
+10.  [Руководство по развёртыванию на Linux/macOS/Windows](docs/Deployment_Guide.md)

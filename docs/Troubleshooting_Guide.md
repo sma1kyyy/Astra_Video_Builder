@@ -34,6 +34,12 @@ uv sync
 ```bash
 ffmpeg -version
 ```
+Быстрые команды установки:
+- Ubuntu/Debian: `sudo apt install -y ffmpeg`
+- Fedora: `sudo dnf install -y ffmpeg`
+- Arch: `sudo pacman -S ffmpeg`
+- macOS: `brew install ffmpeg`
+- Windows: `winget install -e --id Gyan.FFmpeg`
 
 ## 8. `gpu-screen-recorder не найден в PATH`
 Wayland-сессии (Hyprland/GNOME/KDE) пишутся через `gpu-screen-recorder`. Установите его согласно инструкции на [git.dec05eba.com](https://git.dec05eba.com/gpu-screen-recorder/).
@@ -64,6 +70,21 @@ Wayland-сессии (Hyprland/GNOME/KDE) пишутся через `gpu-screen-
 - ожидаемый путь `<title>_recorded.mp4`,
 - команда, которой запускается recorder.
 
+## Ошибки установки на конкретной ОС
+- Linux/macOS/Windows setup шаги собраны в [Deployment Guide](Deployment_Guide.md).
+- Если не активировано виртуальное окружение, команды `uv run`/`python` могут использовать не ту версию Python.
+- На Windows проверьте, что `ffmpeg`/`tesseract` доступны в `PATH` в новом терминале после установки.
+
+## Screenshot-рендер прервался на середине
+Проверьте наличие:
+- `output/.<title>_checkpoint.json`
+- `output/.scene_cache/scene_<N>.mp4`
+
+Перезапустите ту же команду — рендер продолжится с последней успешно обработанной сцены.
+Чтобы начать с нуля:
+- удалите checkpoint;
+- удалите каталог `.scene_cache`.
+  
 ## 13. Live Recording: курсор виден в записи
 По умолчанию курсор автоматически паркуется в правый нижний угол окна **один раз** при старте браузера. Если он всё равно виден в кадре — проверьте, что в сценарии нет действий `click` / `scrollTo`, которые двигают курсор к элементам. На Wayland (особенно с NVIDIA) флаг `cursor: false` в metadata не способен убрать курсор средствами рекордера, потому что software cursor plane захватывается всегда. Парковка через Selenium — единственный надёжный способ.
 

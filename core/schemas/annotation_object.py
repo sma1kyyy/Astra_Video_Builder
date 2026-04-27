@@ -1,114 +1,109 @@
 from pydantic.dataclasses import dataclass
 from pydantic import Field, ConfigDict, model_validator
 from typing import List, Optional, Literal
-from dataclasses import fields #, dataclass
+from dataclasses import fields
 from typing import Optional
 
 from core.schemas.ComponentObject import ComponentObject
+
 
 @dataclass(config=ConfigDict(arbitrary_types_allowed=True))
 class AnnotationObject(ComponentObject):
     type: Literal["square", "line", "arrow", "darrow"] = Field(
         default="square",
-        description="Тип аннотации."
+        description=(
+            "Тип аннотации. "
+            "square — прямоугольник; "
+            "line — прямая линия; "
+            "arrow — стрелка в одну сторону; "
+            "darrow — двунаправленная стрелка."
+        ),
     )
     transparency: float = Field(
         default=0.0,
-        description="Прозрачность.",
+        description="Прозрачность от 0 (непрозрачно) до 1 (невидимо).",
         ge=0,
-        le=1
+        le=1,
     )
-    start_x: int = Field(
-        default=0,
-        description="Начальное положение по X."
-    )
-    start_y: int = Field(
-        default=0,
-        description="Начальное положение по Y."
-    )
-    end_x: int = Field(
-        default=0,
-        description="Конечное положение по X."
-    )
-    end_y: int = Field(
-        default=0,
-        description="Конечное положение по Y."
-    )
+    start_x: int = Field(default=0, description="Начало по X.")
+    start_y: int = Field(default=0, description="Начало по Y.")
+    end_x: int = Field(default=0, description="Конец по X.")
+    end_y: int = Field(default=0, description="Конец по Y.")
     wait: float = Field(
-        default=0.0,
-        description="Ожидание в секундах перед следующей аннотацией."
+        default=0.0, description="Ожидание перед появлением (сек)."
     )
     duration: float = Field(
-        default=0.0,
-        description="Время длительности аннотации."
+        default=0.0, description="Длительность аннотации (0 = до конца сцены)."
     )
     label: Optional[str] = Field(
-        default=None,
-        description="Лейбл рядом с аннотацией."
+        default=None, description="Текстовый лейбл рядом с аннотацией."
     )
     text: Optional[str] = Field(
-        default=None,
-        description="Текст внутри аннотации."
+        default=None, description="Текст внутри аннотации (только type=square)."
     )
 
-    # smart annotation params
+    # Smart annotation
     target_text: Optional[str] = Field(
         default=None,
-        description="Цель для текста."
+        description="Текст для поиска на скриншоте (smart-режим).",
     )
     target_index: int = Field(
         default=0,
-        description="Индекс цели.",
-        ge=0
+        description="Индекс совпадения при нескольких найденных.",
+        ge=0,
     )
     auto_padding: int = Field(
         default=16,
-        description="Автоматический отступ.",
-        ge=0
+        description="Отступ вокруг найденного текста (px).",
+        ge=0,
     )
     auto_expand_width: int = Field(
         default=12,
-        description="На сколько автоматически увеличить ширину.",
-        ge=0
+        description="Дополнительное расширение bbox по ширине.",
+        ge=0,
     )
     auto_expand_height: int = Field(
         default=8,
-        description="На сколько автоматически увеличить высоту.",
-        ge=0
+        description="Дополнительное расширение bbox по высоте.",
+        ge=0,
     )
     auto_from: Literal["auto", "center", "left", "right", "top", "bottom"] = Field(
         default="auto",
-        description="Откуда делать аннотацию"
+        description="Направление старта стрелки для type=arrow.",
     )
 
-    # как вести себя, если target_text не найден
+    #Fallback поведение
     has_manual_coords: bool = Field(
         default=False,
-        description="Есть ли координаты, введеные вручную?"
+        description="Были ли переданы ручные координаты.",
     )
     use_manual_fallback: bool = Field(
         default=True,
-        description="Использовать ручные данные?"
+        description="Использовать ручные координаты если smart-поиск не нашёл.",
     )
 
-    # OCR params
+    # OCR параметры
     ocr: Optional[bool] = Field(
         default=None,
-        description="Используем ocr или нет"
+        description="Запускать OCR на области (только type=square).",
     )
     ocr_lang: str = Field(
         default="rus+eng",
-        description="Языки для OCR."
+        description="Языки Tesseract.",
     )
     ocr_min_conf: float = Field(
         default=0.0,
-        description="Минимальный коеф. для OCR.",
+        description="Минимальный порог уверенности OCR (0..1).",
         ge=0.0,
-        le=1.0
+        le=1.0,
     )
     ocr_target: Literal["overlay", "metadata", "both"] = Field(
         default="overlay",
-        description="Уровень обработки."
+        description=(
+            "overlay — показать текст в кадре; "
+            "metadata — записать в JSON sidecar; "
+            "both — и то и то."
+        ),
     )
 
     @classmethod
@@ -117,17 +112,22 @@ class AnnotationObject(ComponentObject):
 
     @model_validator(mode="after")
     def post_init(self) -> "AnnotationObject":
-        # если координаты должны использоваться вручную, нормализуем их.
-        if self.has_manual_coords or not self.target_text:
-            if self.start_x > self.end_x:
-                self.start_x, self.end_x = self.end_x, self.start_x
-            if self.start_y > self.end_y:
-                self.start_y, self.end_y = self.end_y, self.start_y
+        # Нормализуем координаты для типов, где важна область (square)
+        # Для line/arrow/darrow координаты — это реальные start→end, менять не нужно.
+        if self.type == "square":
+            if self.has_manual_coords or not self.target_text:
+                if self.start_x > self.end_x:
+                    self.start_x, self.end_x = self.end_x, self.start_x
+                if self.start_y > self.end_y:
+                    self.start_y, self.end_y = self.end_y, self.start_y
+                if self.start_x == self.end_x:
+                    self.end_x += 1
+                if self.start_y == self.end_y:
+                    self.end_y += 1
 
-            if self.start_x == self.end_x:
-                self.end_x += 1
-            if self.start_y == self.end_y:
-                self.end_y += 1
+        # OCR доступен только для square
+        if self.ocr and self.type != "square":
+            self.ocr = False
 
         return self
 

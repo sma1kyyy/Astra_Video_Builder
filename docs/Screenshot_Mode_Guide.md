@@ -69,6 +69,13 @@ scene_1:
 - `auto_padding`: общий запас вокруг найденного текста.
 - `auto_expand_width`, `auto_expand_height`: дополнительное расширение.
 - `auto_from` (для arrow): откуда начинать стрелку (`auto|left|right|top|bottom|center`).
+  
+дополнительно поддерживаются типы аннотаций:
+- `line`
+- `arrow`
+- `darrow`
+
+для `line/arrow/darrow` направление задаётся строго координатами `start -> end`.
 
 ## 6. стили субтитров
 поддерживаются стили:
@@ -110,3 +117,10 @@ print(v.metadata.mode, len(v.acts))
 PY
 uv run python main.py -f examples/screenshot/screenshot_minimal.yaml -o output
 ```
+
+## 10. checkpointing (восстановление после сбоя)
+В screenshot mode автоматически ведётся checkpoint:
+- `output/.<title>_checkpoint.json`
+- `output/.scene_cache/scene_<N>.mp4`
+
+Если процесс прерван, повторный запуск той же команды продолжит рендер с последней успешно обработанной сцены.
