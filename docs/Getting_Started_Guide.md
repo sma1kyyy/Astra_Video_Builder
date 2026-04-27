@@ -95,6 +95,14 @@ PY
 
 [Подробная информация по режиму Live Recording](Live_Recording_Mode_Guide.md)
 
+## Веб-интерфейс (screenshot mode)
+
+Если не хочется писать YAML руками, поднимите web-сервис в контейнере:
+```bash
+docker compose up --build
+```
+Откройте `http://localhost:8000/` — увидите конструктор. Там же можно загрузить скриншоты, нажать «Запустить рендер» и скачать готовый mp4 из списка задач. Подробности — раздел «HTTP API (web-сервис)» в [API Reference](API_Reference.md) и раздел 11 в [Screenshot Mode Guide](Screenshot_Mode_Guide.md).
+
 Для Windows (PowerShell):
 ```powershell
 python -m uv sync

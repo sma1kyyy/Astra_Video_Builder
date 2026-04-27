@@ -7,6 +7,7 @@
 - Поддержка двух режимов записи: Live Recording и Screenshot Mode
 - Функционал для воспроизведения аудио с использованием TTS и субтитров к нему
 - Множество эффектов монтажа, такие как переходы между кадрами, наложение различных изображений или вставка музыки
+- HTTP-сервис в `web/` (FastAPI + статический фронт-конструктор) для запуска screenshot mode из браузера. Запуск: `docker compose up --build`. Подробности — в [Screenshot Mode Guide §11](docs/Screenshot_Mode_Guide.md) и [API Reference](docs/API_Reference.md).
 
 # Как использовать
 ## Необходимые требования к окружению
@@ -42,11 +43,20 @@ python -m uv sync
 ```
 
 ## Очередь задач (Celery + Redis)
-Для фонового рендера без API добавлена внутренняя очередь задач. Запуск через Docker Compose:
+Очередь нужна в двух случаях:
+- запуск рендера через web-сервис (`docker compose up --build`);
+- запуск CLI с флагом `--queue` (фоновая обработка одного или нескольких скриптов).
+
+Без очереди CLI отрабатывает локально, синхронно, прямо в текущем процессе:
+```bash
+uv run python main.py -f examples/screenshot/screenshot_minimal.yaml -o output
+```
+
+Если хочется фоновый рендер через Celery — поднимаем `redis` и `worker`:
 ```bash
 docker compose up -d redis worker
 ```
-После запуска worker можно поставить задачу в очередь из CLI:
+Поставить задачу в очередь:
 ```bash
 uv run python main.py -f examples/screenshot/screenshot_minimal.yaml -o output --queue
 ```

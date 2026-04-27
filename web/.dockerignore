@@ -1,0 +1,12 @@
+__pycache__
+*.pyc
+.venv
+.git
+.idea
+.pytest_cache
+output
+input
+tests
+docs
+*.md
+web/backend/_work

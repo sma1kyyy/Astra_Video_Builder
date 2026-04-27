@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AA Video Builder</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="bg-aurora" aria-hidden="true">
+    <span class="blob b1"></span>
+    <span class="blob b2"></span>
+    <span class="blob b3"></span>
+  </div>
+
+  <header class="topbar">
+    <button class="icon-btn theme-toggle" id="theme-toggle" aria-label="Сменить тему" title="Сменить тему">
+      <svg viewBox="0 0 24 24" class="ic-sun" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>
+      <svg viewBox="0 0 24 24" class="ic-moon" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
+    </button>
+
+    <button class="icon-btn drawer-toggle" id="drawer-toggle" aria-label="Открыть задачи" title="Задачи">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+  </header>
+
+  <main class="page">
+    <section class="hero">
+      <h1>AA Video Builder</h1>
+      <p class="subtitle">Сборка демо-роликов из YAML — загрузите готовый скрипт или соберите его в конструкторе.</p>
+    </section>
+
+    <section class="entry" id="entry-mode">
+      <article class="card choice-card" id="choice-upload">
+        <div class="choice-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 21h14"/></svg>
+        </div>
+        <h2>Загрузить YAML</h2>
+        <p>Перетащите файл сюда или выберите вручную. Принимаются <code>.yml</code> / <code>.yaml</code>.</p>
+        <button type="button" class="btn primary" id="btn-pick-yaml">Выбрать файл</button>
+        <input type="file" id="yaml-input" accept=".yml,.yaml,.YML,.YAML" hidden />
+      </article>
+
+      <article class="card choice-card" id="choice-builder">
+        <div class="choice-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M3 12h12M3 18h18"/></svg>
+        </div>
+        <h2>Конструктор</h2>
+        <p>Соберите сценарий по блокам: метаданные, сцены, аннотации.</p>
+        <button type="button" class="btn" id="btn-open-builder">Открыть</button>
+      </article>
+    </section>
+
+    <section class="editor-mode" id="editor-mode" hidden>
+      <div class="card editor-card">
+        <div class="editor-head">
+          <h2>YAML-скрипт</h2>
+          <span class="muted" id="editor-filename"></span>
+        </div>
+        <div class="yaml-editor">
+          <pre class="yaml-highlight" aria-hidden="true" id="yaml-highlight"></pre>
+          <textarea id="yaml-text" spellcheck="false" autocomplete="off"></textarea>
+        </div>
+        <div class="editor-actions">
+          <button type="button" class="btn ghost back-btn" id="editor-back">← Назад</button>
+          <button type="button" class="btn primary" id="editor-run">Запустить рендер</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="builder-mode" id="builder-mode" hidden>
+      <div class="card builder-card">
+        <div class="block-card" id="metadata-card">
+          <h3>Метаданные</h3>
+          <div class="fields" data-block="metadata"></div>
+        </div>
+
+        <div class="block-card">
+          <h3>Сцены</h3>
+          <div id="scenes-list"></div>
+          <button type="button" class="btn" id="add-scene">+ Добавить сцену</button>
+        </div>
+
+        <div class="builder-actions">
+          <button type="button" class="btn ghost back-btn" id="builder-back">← Назад</button>
+          <button type="button" class="link-btn" id="preview-btn">предпросмотр yaml</button>
+          <button type="button" class="btn primary" id="builder-run">Запустить рендер</button>
+        </div>
+
+        <pre id="preview" hidden></pre>
+      </div>
+    </section>
+
+    <section class="assets card" id="assets-card">
+      <div class="assets-head">
+        <h2>Скриншоты</h2>
+        <p class="muted">Перетащите изображения или нажмите кнопку. Скрипт ссылается только на имя файла.</p>
+      </div>
+      <div class="asset-drop" id="asset-drop">
+        <input type="file" id="asset-input" accept="image/*" multiple hidden />
+        <button type="button" class="btn" id="btn-pick-assets">Выбрать файлы</button>
+        <span class="muted">или перетащите сюда</span>
+      </div>
+      <ul id="assets-list"></ul>
+    </section>
+  </main>
+
+  <aside class="drawer" id="drawer" aria-hidden="true">
+    <div class="drawer-head">
+      <h3>Задачи рендера</h3>
+      <button class="icon-btn" id="drawer-close" aria-label="Закрыть">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="drawer-tabs">
+      <button class="tab active" data-tab="active">Активные</button>
+      <button class="tab" data-tab="done">Завершённые</button>
+    </div>
+    <ul id="drawer-jobs"></ul>
+  </aside>
+
+  <div class="drop-overlay" id="drop-overlay" aria-hidden="true">
+    <div>Отпустите YAML-файл, чтобы загрузить</div>
+  </div>
+
+  <div class="toast-stack" id="toast-stack"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -124,3 +124,53 @@ uv run python main.py -f examples/screenshot/screenshot_minimal.yaml -o output
 - `output/.scene_cache/scene_<N>.mp4`
 
 Если процесс прерван, повторный запуск той же команды продолжит рендер с последней успешно обработанной сцены.
+
+## 11. запуск через Web-сервис и через очередь
+В каталоге `web/` лежит HTTP-обёртка над screenshot mode (FastAPI + статический фронт-конструктор).
+Рендер выполняется не в потоках web-процесса, а в Celery-воркере поверх Redis (см. `core/queue/`),
+поэтому web остаётся отзывчивым, а параллельность настраивается через `--concurrency` воркера.
+
+Compose-файл (`docker-compose.yml` в корне) поднимает все три сервиса разом — `redis`, `worker`, `web`:
+```bash
+docker compose up --build
+# UI: http://localhost:8000/   ·   API: http://localhost:8000/api/...
+```
+
+> **Важно про CLI и `--queue`.** Флаг `--queue` у `main.py` отправляет задачу в Celery,
+> а значит требует поднятых `redis` + `worker`. Без них поставленная задача просто
+> останется висеть, а итоговый рендер не запустится. Если рендер через очередь не
+> нужен — запускай CLI без `--queue`, тогда `process_video()` отработает синхронно
+> в текущем процессе и Docker не понадобится.
+
+Локально без докера (для разработки веба) нужно поднять Redis отдельно (`docker run -p 6379:6379 redis:7-alpine`),
+а затем:
+```bash
+# терминал 1 — воркер
+uv run celery -A core.queue.tasks worker --loglevel=info --concurrency=2
+# терминал 2 — web
+uv run uvicorn web.backend.app.main:app --reload --port 8000
+```
+
+Что доступно:
+- `GET /api/blocks` — описание блоков конструктора (metadata / scene / annotation), используемое фронтом для авто-генерации форм.
+- `POST /api/assets` (multipart) — загрузка одного (`file=`) или нескольких (`files=`) скриншотов; после загрузки путь подставляется в сцену по имени файла.
+- `POST /api/scripts/preview` — pydantic-валидация payload и возврат собранного YAML без запуска рендера.
+- `POST /api/scripts/parse` — загрузить готовый YAML (`.yml/.yaml`); парсер `core/parser.py` валидирует, бэк нормализует `scene.path` к basename и возвращает `{payload, yaml, missing_assets}`. Используется фронтом и для режима «редактор YAML», и для авто-заполнения конструктора при перетаскивании файла.
+- `POST /api/jobs` — постановка задачи `render_video_task` в Celery; возвращает `job_id` (он же celery `task_id`).
+- `GET /api/jobs[/{id}]` — статус (маппится из celery state: PENDING→queued, STARTED→running, SUCCESS→done, FAILURE→failed, REVOKED→cancelled), список выходных файлов.
+- `POST /api/jobs/{id}/cancel` — `celery_app.control.revoke(task_id, terminate=True)`.
+- `GET /api/jobs/{id}/files/{name}` — скачать готовое видео / sidecar-метадату.
+
+Frontend (`web/frontend/`) — статический SPA на vanilla JS без сборки:
+- стартовый экран — две карточки: «Загрузить YAML» / «Конструктор», ниже общая форма для скриншотов;
+- свап тёмной/светлой темы (☀/🌙) в левом верхнем углу, выбор хранится в `localStorage` + cookie `aavb-theme`;
+- hamburger-кнопка в правом верхнем углу открывает выезжающий drawer со списком задач (вкладки «Активные» — кнопка отмены / «Завершённые» — кнопки скачивания файлов);
+- глобальный drag-n-drop YAML по всей странице: в режиме конструктора — заполняет поля; иначе — открывает встроенный YAML-редактор с подсветкой;
+- ошибки парсинга/валидации показываются всплывающим toast снизу; принимаются только расширения `.yml/.yaml/.YML/.YAML`.
+
+Переменные окружения:
+- `AAVB_WORK_DIR` (по умолчанию `web/backend/_work`) — где живут ассеты, сгенерированные YAML, output-каталоги и реестр celery-задач.
+- `CELERY_BROKER_URL` / `CELERY_RESULT_BACKEND` — Redis URL (по умолчанию `redis://redis:6379/0,1`).
+- Параллельность регулируется флагом `--concurrency` Celery-воркера (по умолчанию `2`).
+
+Live Recording через web-сервис не запускается осознанно: запись экрана требует физического дисплея и `gpu-screen-recorder` / `avfoundation`, чего в headless-контейнере нет.

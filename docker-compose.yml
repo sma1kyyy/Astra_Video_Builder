@@ -1,0 +1,62 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: aavb-redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  worker:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+    image: aavb-web:latest
+    container_name: aavb-worker
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      AAVB_WORK_DIR: /data
+      AA_LOG_LEVEL: INFO
+    env_file:
+      - .env
+    volumes:
+      - aavb-data:/data
+    command: ["celery", "-A", "core.queue.tasks", "worker", "--loglevel=info", "--concurrency=2"]
+    security_opt:
+      - no-new-privileges:true
+
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+    image: aavb-web:latest
+    container_name: aavb-web
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+      worker:
+        condition: service_started
+    ports:
+      - "8000:8000"
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      AAVB_WORK_DIR: /data
+      AA_LOG_LEVEL: INFO
+    env_file:
+      - .env
+    volumes:
+      - aavb-data:/data
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  aavb-data:
