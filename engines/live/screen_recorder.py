@@ -20,6 +20,48 @@ class UnsupportedPlatformError(RuntimeError):
 class ScreenRecorderError(RuntimeError):
     pass
 
+def build_record_command(
+    input_format: str,
+    input_device: str,
+    filepath: str,
+    fps: int,
+    cursor: bool,
+) -> list[str]:
+    """Возвращает норм команду записи для логов/диагностики."""
+    if input_format == "gpu-screen-recorder":
+        return [
+            "gpu-screen-recorder",
+            "-w", "screen",
+            "-f", str(fps),
+            "-cursor", "yes" if cursor else "no",
+            "-o", filepath,
+        ]
+
+    cmd = [
+        "ffmpeg",
+        "-f", input_format,
+        "-framerate", str(fps),
+    ]
+
+    if input_format in ("x11grab", "gdigrab"):
+        cmd += ["-draw_mouse", "1" if cursor else "0"]
+
+    cmd += ["-i", input_device, "-vcodec", "libx264", "-pix_fmt", "yuv420p", filepath]
+    return cmd
+
+
+def get_recording_diagnostics(metadata: MetadataObject, output: str) -> dict:
+    """Диагностика backend/команды/путей до фактического запуска записи."""
+    input_format, input_device = get_input_params()
+    filepath = f"{output}/{metadata.title}_recorded.mp4"
+    return {
+        "platform": platform.system(),
+        "session_type": os.environ.get("XDG_SESSION_TYPE", "unknown"),
+        "backend": input_format,
+        "input_device": input_device or "screen(default)",
+        "expected_record_path": filepath,
+        "command": " ".join(build_record_command(input_format, input_device, filepath, metadata.fps, metadata.cursor)),
+    }
 
 def _detect_macos_screen_index() -> str:
     # avfoundation назначает индексы устройств динамически (зависят от подключённой
@@ -85,13 +127,7 @@ def _start_gpu_screen_recorder(filepath: str, fps: int, cursor: bool) -> subproc
 
     Поддерживает выключение курсора через флаг -cursor no.
     """
-    cmd = [
-        "gpu-screen-recorder",
-        "-w", "screen",
-        "-f", str(fps),
-        "-cursor", "yes" if cursor else "no",
-        "-o", filepath,
-    ]
+    cmd = build_record_command("gpu-screen-recorder", "", filepath, fps, cursor)
     log.info("Starting gpu-screen-recorder: %s", " ".join(cmd))
     try:
         return subprocess.Popen(cmd, stdin=subprocess.PIPE)
@@ -123,7 +159,12 @@ def start_record(metadata: MetadataObject, output: str) -> subprocess.Popen:
     """Запуск записи экрана в фоновом процессе."""
     input_format, input_device = get_input_params()
     filepath = f"{output}/{metadata.title}_recorded.mp4"
-
+    cmd_preview = " ".join(
+        build_record_command(input_format, input_device, filepath, metadata.fps, metadata.cursor)
+    )
+    log.info("Запуск screen recording backend=%s, expected_file=%s", input_format, filepath)
+    log.debug("Команда записи: %s", cmd_preview)
+    
     if input_format == "gpu-screen-recorder":
         return _start_gpu_screen_recorder(filepath, metadata.fps, metadata.cursor)
 

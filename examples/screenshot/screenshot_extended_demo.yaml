@@ -1,0 +1,110 @@
+metadata:
+  title: screenshot_extended_demo
+  resolution: 1920x1080
+  mode: screenshot
+  fps: 24
+  language: ru
+
+acts:
+  act_1:
+    name: onboarding
+    scenes:
+      scene_1:
+        name: welcome
+        path: input/screen1.png
+        duration: 6
+        tts: "добро пожаловать в демонстрацию screenshot mode. сначала посмотрим главный экран"
+        voice: zahar
+        subtitles: true
+        subtitle_style: classic
+        subtitle_font_size: 40
+        subtitle_max_chars: 96
+        subtitle_bg_opacity: 0.58
+        annotations:
+          annotation_1:
+            type: square
+            transparency: 0.35
+            target_text: "Astra"
+            start_x: 80
+            start_y: 80
+            end_x: 760
+            end_y: 360
+            auto_padding: 24
+            ocr: true
+            ocr_lang: rus+eng
+            ocr_min_conf: 0.30
+            ocr_target: both
+
+      scene_2:
+        name: highlight_templates
+        path: input/screen2.png
+        duration: 6
+        tts: "найдем секцию templates с помощью smart annotation. если ocr не сработает, останутся ручные координаты"
+        voice: jane
+        subtitles: true
+        subtitle_style: contrast
+        subtitle_font_size: 38
+        subtitle_max_chars: 96
+        subtitle_bg_opacity: 0.62
+        annotations:
+          annotation_1:
+            type: square
+            transparency: 0.22
+            target_text: "Templates"
+            start_x: 1020
+            start_y: 210
+            end_x: 1720
+            end_y: 520
+            auto_padding: 18
+            auto_expand_width: 10
+            auto_expand_height: 8
+            ocr: true
+            ocr_lang: rus+eng
+            ocr_min_conf: 0.28
+            ocr_target: both
+          annotation_2:
+            type: arrow
+            transparency: 0.06
+            target_text: "Templates"
+            start_x: 880
+            start_y: 620
+            end_x: 1240
+            end_y: 370
+            auto_from: left
+            wait: 0.4
+            duration: 4.8
+
+      scene_3:
+        name: manual_annotation
+        path: input/login_screen.png
+        duration: 6
+        tts: "здесь показана ручная разметка, чтобы не зависеть от OCR"
+        voice: zahar
+        subtitles: true
+        subtitle_style: cinematic
+        subtitle_font_size: 36
+        subtitle_max_chars: 88
+        subtitle_bg_opacity: 0.60
+        annotations:
+          annotation_1:
+            type: square
+            transparency: 0.24
+            start_x: 760
+            start_y: 350
+            end_x: 1180
+            end_y: 500
+            wait: 0.8
+            duration: 4.6
+            ocr: true
+            ocr_lang: rus+eng
+            ocr_min_conf: 0.32
+            ocr_target: metadata
+          annotation_2:
+            type: arrow
+            transparency: 0.0
+            start_x: 620
+            start_y: 620
+            end_x: 930
+            end_y: 430
+            wait: 1.2
+            duration: 4.0

@@ -384,7 +384,7 @@ acts:
 **запуск:**
 ```bash
 mkdir -p output
-uv run python main.py -f examples/screenshot_minimal.yaml -o output
+uv run python main.py -f examples/screenshot/screenshot_minimal.yaml -o output
 ```
 
 **примечание:**
@@ -549,5 +549,5 @@ acts:
 запуск:
 ```bash
 mkdir -p output
-uv run python main.py -f examples/screenshot_extended_demo.yaml -o output
+uv run python main.py -f examples/screenshot/screenshot_extended_demo.yaml -o output
 ```

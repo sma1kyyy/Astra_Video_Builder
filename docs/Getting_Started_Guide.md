@@ -29,7 +29,7 @@ source .venv/bin/activate
 ### 1. первый рендер
 ```bash
 mkdir -p output
-uv run python main.py -f examples/screenshot_minimal.yaml -o output
+uv run python main.py -f examples/screenshot/screenshot_minimal.yaml -o output
 ```
 
 после выполнения проверьте выход:
@@ -43,7 +43,7 @@ ls -lah output
 - `output/audio_cache/*.wav` — кэш tts.
 
 ### 3. настройка сценария
-редактируйте `examples/screenshot_minimal.yaml`:
+редактируйте `examples/screenshot/screenshot_minimal.yaml`:
 - меняйте `path` на свои изображения,
 - включайте `subtitles` и стили,
 - добавляйте smart аннотации через `target_text`.
@@ -53,7 +53,7 @@ ls -lah output
 python -m compileall cli core engines
 uv run python - <<'PY'
 from core.parser import parse
-v = parse('examples/screenshot_minimal.yaml')
+v = parse('examples/screenshot/screenshot_minimal.yaml')
 print(v.metadata.mode, len(v.acts), len(v.acts[0].scenes))
 PY
 ```

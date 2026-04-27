@@ -20,7 +20,7 @@ screenshot mode - это режим, в котором видео собирае
 ## 3. запуск
 ```bash
 mkdir -p output
-uv run python main.py -f examples/screenshot_minimal.yaml -o output
+uv run python main.py -f examples/screenshot/screenshot_minimal.yaml -o output
 ```
 
 ## 4. структура screenshot сцены
@@ -105,8 +105,8 @@ ocr можно включить на square-аннотациях:
 python -m compileall cli core engines
 uv run python - <<'PY'
 from core.parser import parse
-v = parse('examples/screenshot_minimal.yaml')
+v = parse('examples/screenshot/screenshot_minimal.yaml')
 print(v.metadata.mode, len(v.acts))
 PY
-uv run python main.py -f examples/screenshot_minimal.yaml -o output
+uv run python main.py -f examples/screenshot/screenshot_minimal.yaml -o output
 ```

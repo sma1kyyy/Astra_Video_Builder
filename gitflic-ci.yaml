@@ -1,8 +1,9 @@
-# CI/CD pipeline для AA Video Builder.
-# Триггерится на push в любую ветку и на merge requests.
+#  CI/CD — AA Video Builder
+#  Триггер: push в любую ветку + merge request events
 
 image: python:3.13-slim
 
+#Когда запускать
 workflow:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -10,39 +11,150 @@ workflow:
 
 stages:
   - lint
+  - build
   - test
 
+#Глобальные переменные
 variables:
   UV_CACHE_DIR: .uv-cache
   PIP_DISABLE_PIP_VERSION_CHECK: "1"
   PYTHONDONTWRITEBYTECODE: "1"
+  PYTHONUNBUFFERED: "1"          # логи в реальном времени
 
-cache:
-  key: uv-py313
-  paths:
-    - .uv-cache
-    - .venv
-
-before_script:
-  - apt-get update -qq && apt-get install -qq -y --no-install-recommends curl ca-certificates ffmpeg
+#Переиспользуемые якоря
+.uv_setup: &uv_setup
+  - apt-get update -qq
+  - apt-get install -qq -y --no-install-recommends curl ca-certificates
   - curl -LsSf https://astral.sh/uv/install.sh | sh
   - export PATH="$HOME/.local/bin:$PATH"
-  - uv sync --group dev
 
+.uv_setup_ffmpeg: &uv_setup_ffmpeg
+  - apt-get update -qq
+  - apt-get install -qq -y --no-install-recommends curl ca-certificates ffmpeg
+  - curl -LsSf https://astral.sh/uv/install.sh | sh
+  - export PATH="$HOME/.local/bin:$PATH"
+
+#Кэш (ключ по lock-файлу, точечный)
+.cache_uv: &cache_uv
+  cache:
+    key:
+      files:
+        - uv.lock          # инвалидируется только при изменении зависимостей
+    paths:
+      - .uv-cache
+      - .venv
+    policy: pull-push      # только первый job пишет, остальные читают
+
+.cache_uv_pull: &cache_uv_pull
+  cache:
+    key:
+      files:
+        - uv.lock
+    paths:
+      - .uv-cache
+      - .venv
+    policy: pull           # read-only — не засоряем кэш параллельные jobs
+
+#  STAGE: lint
 lint:syntax:
   stage: lint
+  timeout: 5 minutes
+  <<: *cache_uv
+  before_script:
+    - *uv_setup
+    - uv sync --group dev --frozen   # --frozen = никаких сюрпризов от lock-файла
   script:
-    - export PATH="$HOME/.local/bin:$PATH"
     - uv run python -m compileall -q core engines main.py
-    - uv run python -c "import main; print('main importable')"
+    - uv run python -c "import main; print('✓ main importable')"
+
+lint:style:
+  stage: lint
+  timeout: 5 minutes
+  <<: *cache_uv_pull
+  needs: []                          # стартует параллельно с lint:syntax
+  before_script:
+    - *uv_setup
+    - uv sync --group dev --frozen
+  script:
+    - uv run ruff check .
+    - uv run ruff format --check .
+
+#  STAGE: test
+test:docs:
+  stage: test
+  timeout: 3 minutes
+  needs: [lint:syntax]
+  <<: *cache_uv_pull
+  before_script:
+    - *uv_setup
+    - uv sync --frozen
+  script:
+    - |
+      uv run python - <<'PY'
+      from pathlib import Path
+      import re
+
+      missing = []
+      for md in Path("docs").glob("*.md"):
+          text = md.read_text(encoding="utf-8")
+          for rel in re.findall(r"examples/[\w\-/]+\.ya?ml", text):
+              if not Path(rel).exists():
+                  missing.append((str(md), rel))
+
+      if missing:
+          print(" Missing example files referenced in docs:")
+          for md, rel in missing:
+              print(f"   {md}: {rel}")
+          raise SystemExit(1)
+
+      print("✓ All examples/*.yaml referenced in docs exist.")
+      PY
+
+test:integration:
+  stage: test
+  timeout: 10 minutes
+  needs: [lint:syntax]
+  <<: *cache_uv_pull
+  before_script:
+    - *uv_setup_ffmpeg             # ffmpeg нужен только здесь
+    - uv sync --frozen
+  script:
+    - |
+      uv run python - <<'PY'
+      from core.parser import parse
+
+      path = "examples/screenshot/screenshot_minimal.yaml"
+      v = parse(path)
+      acts, scenes = len(v.acts), len(v.acts[0].scenes)
+      print(f"✓ mode={v.metadata.mode}  acts={acts}  scenes={scenes}")
+      assert acts > 0 and scenes > 0, "Parsed structure is empty!"
+      PY
 
 test:unit:
   stage: test
+  timeout: 15 minutes
+  needs: [lint:syntax]
+  <<: *cache_uv_pull
+  before_script:
+    - *uv_setup_ffmpeg
+    - uv sync --group dev --frozen
   script:
-    - export PATH="$HOME/.local/bin:$PATH"
-    - uv run pytest tests/ -v --tb=short
+    - |
+      uv run pytest tests/ -v --tb=short \
+        --cov=core --cov=engines \
+        --cov-report=term-missing \
+        --cov-report=xml:coverage.xml \
+        --junitxml=report.xml
+  coverage: '/TOTAL.*\s+(\d+%)$/'   # GitLab подхватит % в интерфейсе
   artifacts:
     when: always
+    reports:
+      junit: report.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
     paths:
       - .pytest_cache
-    expire_in: 1 week
+      - coverage.xml
+      - report.xml
+    expire_in: 2 weeks

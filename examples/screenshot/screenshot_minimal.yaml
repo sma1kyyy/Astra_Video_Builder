@@ -1,0 +1,14 @@
+metadata:
+  title: screenshot_minimal_demo
+  resolution: 1920x1080
+  mode: screenshot
+  fps: 24
+
+acts:
+  act_1:
+    name: quick_start
+    scenes:
+      scene_1:
+        name: first_frame
+        path: input/screen1.png
+        duration: 4

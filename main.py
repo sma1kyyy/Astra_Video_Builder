@@ -11,7 +11,7 @@ log = LoggerFactory.get_logger(__name__)
 
 cli = argparse.ArgumentParser(description="Генерация роликов из YAML-скриптов")
 cli.add_argument("-f", "--file", required=True, help="путь к yaml файлу")
-cli.add_argument("-o", "--output", required=True, help="директория для сохранения результата")
+cli.add_argument("-o", "--output", required=True, help="каталог для сохранения результата")
 
 
 def _validate_args(args) -> bool:
@@ -19,7 +19,7 @@ def _validate_args(args) -> bool:
         log.error("Файл %s не найден", args.file)
         return False
     if not path.isdir(args.output):
-        log.error("Директория %s не существует", args.output)
+        log.error("Каталог %s не существует", args.output)        
         return False
     return True
 
@@ -34,6 +34,7 @@ def _run_live_mode(video, output_dir: str) -> None:
 
     from core.utils.speech import get_wav_duration, start_speech
     from engines.live.browser_engine import get_driver, quit_driver, start_actions
+    from engines.live.screen_recorder import get_recording_diagnostics
     from engines.live.screen_recorder import start_record, stop_record
     from engines.live.video_engine import live_recording_render
 
@@ -92,6 +93,15 @@ def _run_live_mode(video, output_dir: str) -> None:
                     save_files=video.metadata.save_files,
                 )
                 log.info("Видео успешно сохранено: %s", final_path)
+            except FileNotFoundError as exc:
+                diag = get_recording_diagnostics(video.metadata, output_dir)
+                log.error("Live render: не найден файл записи экрана: %s", exc)
+                log.error(
+                    "Диагностика записи: platform=%s, session=%s, backend=%s, input=%s",
+                    diag["platform"], diag["session_type"], diag["backend"], diag["input_device"]
+                )
+                log.error("Ожидаемый файл: %s", diag["expected_record_path"])
+                log.error("Команда записи: %s", diag["command"])
             except Exception:
                 log.exception("Не удалось смонтировать итоговое видео")
 

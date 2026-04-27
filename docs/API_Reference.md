@@ -1,13 +1,13 @@
 <!-- # CLI
 Для создания видео используется скрипт **main.py**. Ему передаются 2 обязательных параметра: 
 - file - путь до YAML-скрипта
-- output - путь до директории, куда будет сохранено видео
+- output - путь до каталога, куда будет сохранено видео
 
 Режим, название итогового видео и прочие параметры передаются в YAML-скрипте.
 
 *Пример:*
 ```
-uv run main.py -f path/to/script.yaml -o path/to/dir
+uv run python main.py -f path/to/script.yaml -o path/to/dir
 ``` -->
 # Руководство по взаимодействию (API)
 
@@ -17,11 +17,11 @@ uv run main.py -f path/to/script.yaml -o path/to/dir
  
 ### базовая команда
 ```bash
-uv run main.py -f <script.yaml> -o <output_dir>
+uv run python main.py -f <script.yaml> -o <output_dir>
 ```
 ### параметры
 - `-f, --file` — путь до yaml-сценария.
-- `-o, --output` — путь до директории результата.
+- `-o, --output` — путь до каталога результата.
 
 ### пример
 ```bash

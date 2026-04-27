@@ -25,7 +25,7 @@
 
 ## бенчмарк шаблон
 ```bash
-time uv run python main.py -f examples/screenshot_minimal.yaml -o output
+time uv run python main.py -f examples/screenshot/screenshot_minimal.yaml -o output
 ```
 
 рекомендуется вести таблицу:
