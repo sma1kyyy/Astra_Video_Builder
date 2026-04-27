@@ -290,4 +290,7 @@ def __parse_audios(audios: dict) -> List[AudioObject]:
 def __parse_metadata(metadata: dict) -> MetadataObject:
     if not metadata.get("title") or not metadata.get("resolution"):
         raise NoRequiredAttribute("metadata (title/resolution)")
+    metadata = dict(metadata)
+    if metadata.get("mode") == "screenshots":
+        metadata["mode"] = "screenshot"
     return MetadataObject(**metadata)

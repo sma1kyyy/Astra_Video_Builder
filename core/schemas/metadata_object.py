@@ -25,7 +25,7 @@ class MetadataObject(ComponentObject):
         default="ru",
         description="Язык TTS."
     )
-    mode: Literal["live", "screenshot"] = Field(
+    mode: Literal["live", "screenshot", "screenshots"] = Field(
         default="live",
         description="Режим создания видео."
     )

@@ -148,6 +148,8 @@ def process_video(file_path: str, output_dir: str) -> dict:
     match video.metadata.mode:
         case "screenshot":
             output_file = _run_screenshot_mode(video, output_dir)
+        case "screenshots":
+            output_file = _run_screenshot_mode(video, output_dir)
         case "live":
             output_file = _run_live_mode(video, output_dir)
         case other:
@@ -204,22 +206,28 @@ def main() -> int:
         return _check_task_status(args.task_id)
 
     try:
-        log.info("Чтение скрипта: %s", args.file)
-        video = parse(args.file)
+        # log.info("Чтение скрипта: %s", args.file)
+        # video = parse(args.file)
 
-        match video.metadata.mode:
-            case "screenshot":
-                _run_screenshot_mode(video, args.output)
-            case "live":
-                _run_live_mode(video, args.output)
-            case other:
-                log.error("Неизвестный режим: %s", other)
-                return 2
+        # match video.metadata.mode:
+        #     case "screenshot":
+        #         _run_screenshot_mode(video, args.output)
+        #     case "live":
+        #         _run_live_mode(video, args.output)
+        #     case other:
+        #         log.error("Неизвестный режим: %s", other)
+        #         return 2
         if args.queue:
             return _enqueue_video(args)
 
-        process_video(args.file, args.output)
-        
+        #process_video(args.file, args.output)
+        result = process_video(args.file, args.output)
+        log.info(
+            "Генерация завершена успешно: mode=%s, output=%s",
+            result["mode"],
+            result["output_file"],
+        )
+
     except Exception:
         log.exception("Критическая ошибка")
         return 1
