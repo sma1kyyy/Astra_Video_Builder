@@ -84,6 +84,8 @@ def _preprocess_roi(roi: np.ndarray) -> np.ndarray:
     return np.array(upscaled)
 
 def _run_tesseract_data(image: np.ndarray, lang: str, psm: int) -> Dict[str, List]:
+    if pytesseract is None:
+        raise RuntimeError("pytesseract не импортирован")
     return pytesseract.image_to_data(
         image,
         lang=lang,
@@ -146,7 +148,10 @@ def run_ocr(roi: np.ndarray, lang: str = "rus+eng", min_conf: float = 0.0) -> Di
         return {"text": "", "confidence": 0.0}
 
     prepared = _preprocess_roi(roi)
-    candidates: List[Tuple[str, float]] = []
+    #candidates: List[Tuple[str, float]] = []
+    # (text, bbox, conf) — bbox нужен для дедупликации между разными PSM
+    candidates: List[Tuple[str, Tuple[int, int, int, int], float]] = []
+    seen_keys: set[Tuple[str, Tuple[int, int, int, int]]] = set()
 
     for psm in (6, 11):
         try:
@@ -187,7 +192,16 @@ def run_ocr(roi: np.ndarray, lang: str = "rus+eng", min_conf: float = 0.0) -> Di
 
             conf01 = conf / 100.0
             if conf01 >= float(min_conf):
-                candidates.append((text, conf01))
+                left = int(float(data.get("left", [0])[i]))
+                top = int(float(data.get("top", [0])[i]))
+                width = int(float(data.get("width", [1])[i]))
+                height = int(float(data.get("height", [1])[i]))
+                bbox = (left, top, left + max(1, width), top + max(1, height))
+                key = (text.lower(), bbox)
+                if key in seen_keys:
+                    continue
+                seen_keys.add(key)
+                candidates.append((text, bbox, conf01))
 
 
         # conf01 = conf / 100.0
@@ -202,8 +216,8 @@ def run_ocr(roi: np.ndarray, lang: str = "rus+eng", min_conf: float = 0.0) -> Di
 
     # avg_conf = sum(confs) / len(confs)
     # return {"text": " ".join(texts), "confidence": round(avg_conf, 4)}
-    text_out = " ".join([t for t, _ in candidates]).strip()
-    avg_conf = float(sum(c for _, c in candidates) / len(candidates))
+    text_out = " ".join([t for t, _, _ in candidates]).strip()
+    avg_conf = float(sum(c for _, _, c in candidates) / len(candidates))
     return {"text": text_out, "confidence": avg_conf}
 
 

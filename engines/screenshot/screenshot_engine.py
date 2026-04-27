@@ -5,6 +5,7 @@ import json
 import os
 from difflib import SequenceMatcher
 import shutil
+from dataclasses import replace
 from typing import List, Optional, Tuple
 
 import numpy as np
@@ -39,6 +40,7 @@ log = LoggerFactory.get_logger(__name__)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(BASE_DIR, "../.."))
+FONTS_DIR = os.path.join(PROJECT_ROOT, "assets", "fonts")
 
 # Типы аннотаций, которые рисуются как линии (не требуют focus-mask)
 _LINE_TYPES = {"line", "arrow", "darrow"}
@@ -170,7 +172,7 @@ class ScreenshotEngine:
         self.ocr_results: List[dict] = []
 
     def _get_text_size(self, text: str, fontsize: int) -> Tuple[int, int]:
-        font_path = os.path.join("assets/fonts", "Regular.ttf")
+        font_path = os.path.join(FONTS_DIR, "Regular.ttf")
         test_clip = TextClip(
             text=text,
             font=font_path,
@@ -197,7 +199,7 @@ class ScreenshotEngine:
 
         txt = TextClip(
             text=text,
-            font=os.path.join("assets/fonts", "SemiBold.ttf"),
+            font=os.path.join(FONTS_DIR, "SemiBold.ttf"),
             font_size=30,
             color="white",
             method="caption",
@@ -234,7 +236,7 @@ class ScreenshotEngine:
             return None
 
         candidates = detect_text_candidates(
-            scene_np, lang=annot.ocr_lang, min_conf=max(annot.ocr_min_conf, 0.2)
+            scene_np, lang=annot.ocr_lang, min_conf=annot.ocr_min_conf
         )
         if not candidates:
             return None
@@ -244,12 +246,18 @@ class ScreenshotEngine:
                 (self._similarity(annot.target_text, c.get("text", "")), c)
                 for c in candidates
             ],
-            key=lambda x: x[0],
-            reverse=True,
+            key=lambda x: (-x[0], x[1]["bbox"][1], x[1]["bbox"][0]),
         )
 
         if not scored or scored[0][0] < 0.55:
             return None
+        
+        if annot.target_index >= len(scored):
+            log.warning(
+                "target_index=%d вне диапазона (кандидатов=%d), выбран последний.",
+                annot.target_index,
+                len(scored),
+            )
 
         selected_idx = min(max(0, annot.target_index), len(scored) - 1)
         _, selected = scored[selected_idx]
@@ -286,7 +294,7 @@ class ScreenshotEngine:
         video_w: int,
         video_h: int,
     ) -> Optional[AnnotationObject]:
-        resolved = AnnotationObject(**annot.__dict__.copy())
+        resolved = replace(annot)
 
         auto_bbox = self._find_target_bbox(scene_np, resolved)
         if resolved.target_text and not auto_bbox:
@@ -305,7 +313,7 @@ class ScreenshotEngine:
         if auto_bbox:
             resolved.start_x, resolved.start_y, resolved.end_x, resolved.end_y = auto_bbox
 
-            if resolved.type == "arrow":
+            if resolved.type == "arrow" and not resolved.has_manual_coords:
                 cx = (resolved.start_x + resolved.end_x) // 2
                 cy = (resolved.start_y + resolved.end_y) // 2
                 offset = max(120, int(min(video_w, video_h) * 0.09))
@@ -351,7 +359,7 @@ class ScreenshotEngine:
         if len(subtitle_text) > scene.subtitle_max_chars:
             capped += "..."
 
-        font_path = os.path.join("assets/fonts", "Regular.ttf")
+        font_path = os.path.join(FONTS_DIR, "Regular.ttf")
 
         #Точная синхронизация с аудио
         fade_in_dur = 0.3
@@ -460,9 +468,10 @@ class ScreenshotEngine:
         """
         video_w, video_h = res
 
-        tts_text = scene.tts or " ".join([txt.text for txt in scene.texts])
-        audio_path, audio_duration = generate_speech(tts_text, scene.voice)
-        scene_duration = max(scene.duration, audio_duration) if audio_path else scene.duration
+        tts_text = (scene.tts or "").strip()
+        audio_path, audio_duration = generate_speech(tts_text, scene.voice) if tts_text else ("", 0.0)
+        base_duration = max(float(scene.duration), 0.5)
+        scene_duration = max(base_duration, audio_duration) if audio_path else base_duration
 
         if not os.path.exists(scene.path):
             raise FileNotFoundError(f"Файл не найден: {scene.path}")
@@ -578,8 +587,8 @@ class ScreenshotEngine:
                 layers.append(annot_clip)
 
         #Текстовые блоки 
-        font_path = os.path.join("assets/fonts", "Regular.ttf")
-        semibold_path = os.path.join("assets/fonts", "SemiBold.ttf")
+        font_path = os.path.join(FONTS_DIR, "Regular.ttf")
+        semibold_path = os.path.join(FONTS_DIR, "SemiBold.ttf")
 
         for txt in scene.texts:
             text_w, text_h = self._get_text_size(txt.text, int(txt.size))
@@ -773,23 +782,41 @@ class ScreenshotEngine:
         )
 
         #OCR sidecar
-        ocr_path = os.path.join(self.output_dir, f"{title}_ocr.json")
-        try:
-            with open(ocr_path, "w", encoding="utf-8") as f:
-                json.dump(
-                    {
-                        "title": title,
-                        "resolution": video_obj.metadata.resolution,
-                        "ocr_available": is_ocr_available(),
-                        "results": self.ocr_results,
-                    },
-                    f,
-                    ensure_ascii=False,
-                    indent=2,
-                )
-            log.info("OCR metadata: %s", ocr_path)
-        except Exception as exc:
-            log.warning("Не удалось сохранить OCR metadata: %s", exc)
+        if self.ocr_results:
+            ocr_path = os.path.join(self.output_dir, f"{title}_ocr.json")
+            try:
+                with open(ocr_path, "w", encoding="utf-8") as f:
+                    json.dump(
+                        {
+                            "title": title,
+                            "resolution": video_obj.metadata.resolution,
+                            "ocr_available": is_ocr_available(),
+                            "results": self.ocr_results,
+                        },
+                        f,
+                        ensure_ascii=False,
+                        indent=2,
+                    )
+                log.info("OCR metadata: %s", ocr_path)
+            except Exception as exc:
+                log.warning("Не удалось сохранить OCR metadata: %s", exc)
+        # ocr_path = os.path.join(self.output_dir, f"{title}_ocr.json")
+        # try:
+        #     with open(ocr_path, "w", encoding="utf-8") as f:
+        #         json.dump(
+        #             {
+        #                 "title": title,
+        #                 "resolution": video_obj.metadata.resolution,
+        #                 "ocr_available": is_ocr_available(),
+        #                 "results": self.ocr_results,
+        #             },
+        #             f,
+        #             ensure_ascii=False,
+        #             indent=2,
+        #         )
+        #     log.info("OCR metadata: %s", ocr_path)
+        # except Exception as exc:
+        #     log.warning("Не удалось сохранить OCR metadata: %s", exc)
 
         #очистка checkpoint после успешного рендера
         _clear_checkpoint(self.output_dir, title)

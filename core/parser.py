@@ -170,7 +170,8 @@ def __parse_annotations(annotations: dict) -> List[AnnotationObject]:
         if not item:
             raise NoValue(f"annotations/{key}")
 
-        required = ["type", "transparency"]
+        required = ["type"]
+        #required = ["type", "transparency"]
         for req in required:
             if item.get(req) is None:
                 raise NoRequiredAttribute(f"annotations/{key}/{req}")
