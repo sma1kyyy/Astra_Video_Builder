@@ -16,6 +16,7 @@ from pydantic import ValidationError
 
 from web.backend.app.adapter import video_to_payload
 from web.backend.app.blocks import list_blocks
+from web.backend.app.generator.router import router as generator_router
 from web.backend.app.jobs import CeleryJobRegistry, list_output_files, public_status
 from web.backend.app.schemas import (
     JobCreatedResponse,
@@ -269,6 +270,8 @@ def create_app() -> FastAPI:
         if not full.exists() or not full.is_file():
             raise HTTPException(status_code=404, detail="file not found")
         return FileResponse(str(full), filename=safe)
+
+    app.include_router(generator_router)
 
     if FRONTEND_DIR.exists():
         app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")

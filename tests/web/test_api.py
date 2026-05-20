@@ -266,3 +266,16 @@ def test_assets_bulk_upload(client):
     listed = client.get("/api/assets").json()["assets"]
     names = {a["filename"] for a in listed}
     assert {"a.png", "b.png"}.issubset(names)
+
+
+def test_generator_status_endpoint(client):
+    res = client.get("/api/generator/status")
+    assert res.status_code == 200
+    body = res.json()
+    assert "llm_configured" in body
+    assert "vision_enabled" in body
+    assert "ocr_available" in body
+    assert "rate_limit" in body
+    assert isinstance(body["llm_configured"], bool)
+    assert isinstance(body["vision_enabled"], bool)
+    assert isinstance(body["ocr_available"], bool)
