@@ -1,0 +1,27 @@
+metadata:
+  title: live_minimal
+  resolution: 1920x1080
+  description: Минимальный live-recording пример
+  language: ru
+  mode: live
+  browser: chrome
+  cursor: false
+  fps: 30
+  save_files: false
+
+acts:
+  act_1:
+    name: demo
+    scenes:
+      scene_1:
+        name: open_page
+        duration: 5
+        tts: Открываем главную страницу проекта Astra Automation.
+        voice: zahar
+        actions:
+          action_1:
+            type: navigate
+            url: https://astra-automation.ru
+          action_2:
+            type: wait
+            duration: 2

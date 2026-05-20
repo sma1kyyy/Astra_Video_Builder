@@ -1,0 +1,116 @@
+metadata:
+  title: live_extended_demo
+  resolution: 1920x1080
+  description: Расширенный live-recording пример со всеми типами действий
+  language: ru
+  mode: live
+  browser: chrome
+  cursor: false
+  fps: 30
+  save_files: false
+
+acts:
+  act_1:
+    name: docs_walkthrough
+    scenes:
+      scene_1:
+        name: open_docs
+        duration: 6
+        tts: Переходим к документации Astra Automation, чтобы продемонстрировать live recording.
+        voice: zahar
+        subtitles: true
+        subtitle_style: classic
+        actions:
+          action_1:
+            type: navigate
+            url: https://docs.astra-automation.ru/2.0/
+          action_2:
+            type: wait
+            duration: 2
+
+      scene_2:
+        name: open_quickstart
+        duration: 7
+        tts: Раскрываем раздел и переходим в быстрый старт по клику на ссылку.
+        voice: zahar
+        subtitles: true
+        subtitle_style: classic
+        actions:
+          action_1:
+            type: click
+            selector: //span[@class='toctree-toggle']
+          action_2:
+            type: wait
+            duration: 1
+          action_3:
+            type: click
+            selector: //a[text()='Быстрый старт']
+          action_4:
+            type: wait
+            duration: 2
+
+      scene_3:
+        name: search
+        duration: 6
+        tts: Используем поиск по документации, чтобы найти нужный раздел.
+        voice: jane
+        subtitles: true
+        subtitle_style: contrast
+        actions:
+          action_1:
+            type: input
+            selector: //input[@class='form-control']
+            text: тестирование
+          action_2:
+            type: wait
+            duration: 2
+
+      scene_4:
+        name: scroll_demo
+        duration: 8
+        tts: Демонстрируем скроллинг страницы вниз и обратно вверх.
+        voice: jane
+        subtitles: true
+        subtitle_style: contrast
+        actions:
+          action_1:
+            type: scrollDown
+            point: 500
+            behavior: smooth
+          action_2:
+            type: wait
+            duration: 2
+          action_3:
+            type: scrollUp
+            point: 500
+            behavior: smooth
+          action_4:
+            type: wait
+            duration: 2
+
+      scene_5:
+        name: scroll_to_element
+        duration: 6
+        tts: Прокручиваем страницу к конкретному элементу, чтобы выделить его в кадре.
+        voice: jane
+        subtitles: true
+        subtitle_style: cinematic
+        actions:
+          action_1:
+            type: scrollTo
+            selector: //footer
+          action_2:
+            type: wait
+            duration: 2
+
+      scene_6:
+        name: outro
+        duration: 4
+        tts: На этом демонстрация завершена. Спасибо за внимание.
+        voice: jane
+        subtitles: true
+        subtitle_style: cinematic
+        actions:
+          action_1:
+            type: wait
+            duration: 3
