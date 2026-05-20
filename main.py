@@ -66,14 +66,24 @@ def _run_live_mode(video, output_dir: str) -> str | None:
     from engines.live.screen_recorder import start_record, stop_record
     from engines.live.video_engine import live_recording_render
 
+    # собираем все сцены из всех актов в один плоский список
+    all_scenes = []
+    for act in video.acts:
+        all_scenes.extend(act.scenes)
+
+    if not all_scenes:
+        log.error("Нет сцен для выполнения.")
+        return None
+
     screen_recording_process = None
     scene_times: list = []
+    render_attempted = False
     final_path = None
 
     try:
         driver = get_driver(video.metadata.browser)
 
-        first_scene = video.acts[0].scenes[0]
+        first_scene = all_scenes[0]
         if not first_scene.actions or first_scene.actions[0].type != "navigate":
             raise ValueError(
                 "Первое действие первой сцены должно быть `navigate` — "
@@ -83,8 +93,9 @@ def _run_live_mode(video, output_dir: str) -> str | None:
         first_action = first_scene.actions.pop(0)
         driver.get(first_action.url)
 
+        # пре-генерация TTS для всех сцен
         tts_durations: dict[int, float] = {}
-        for i, scene in enumerate(video.acts[0].scenes):
+        for i, scene in enumerate(all_scenes):
             if scene.tts:
                 scene_id = i + 1
                 tts_path = f"{output_dir}/scene_{scene_id}.wav"
@@ -95,7 +106,7 @@ def _run_live_mode(video, output_dir: str) -> str | None:
         sleep(0.3)
 
         timeline_start = time()
-        for i, scene in enumerate(video.acts[0].scenes):
+        for i, scene in enumerate(all_scenes):
             scene_id = i + 1
             start_scene = time() - timeline_start
             scene_start_time = time()
@@ -105,13 +116,15 @@ def _run_live_mode(video, output_dir: str) -> str | None:
 
             end_scene = time() - scene_start_time + start_scene
             scene_times.append([scene_id, start_scene, end_scene])
+
     except Exception:
         log.exception("Ошибка во время выполнения live-сценария")
     finally:
         stop_record(screen_recording_process)
         quit_driver()
 
-        if scene_times:
+        if len(scene_times) > 0:
+            render_attempted = True
             try:
                 final_path = live_recording_render(
                     output_dir,
@@ -131,7 +144,8 @@ def _run_live_mode(video, output_dir: str) -> str | None:
                 log.error("Команда записи: %s", diag["command"])
             except Exception:
                 log.exception("Не удалось смонтировать итоговое видео")
-        else:
+
+        if not render_attempted:
             log.error("Рендер не был запущен: нет валидных сцен.")
 
     return final_path
