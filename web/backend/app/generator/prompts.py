@@ -191,6 +191,43 @@ def build_screenshot_prompt(
     ]
 
 
+def build_live_spec_block(
+    *,
+    user_description: str,
+    start_url: str,
+    voice: str = "jane",
+    browser: str = "chrome",
+    language: str = "ru",
+    resolution: str = "1920x1080",
+    fps: int = 30,
+) -> str:
+    minimal = _read_example("live/live_minimal.yaml")
+    extended = _read_example("live/live_extended.yaml")
+
+    return (
+        "СПЕЦИФИКАЦИЯ YAML (live recording mode):\n\n"
+        + _LIVE_FIELDS_SPEC
+        + "\n"
+        + _COMMON_RULES
+        + "\n8. Первое действие первой сцены ОБЯЗАНО быть type: navigate с указанным url.\n"
+        + "9. XPath-селекторы используй только реально существующие в DOM. \n"
+        + "   Не строй селекторы вида //input[@placeholder='X' or @type='Y'] — это галлюцинация.\n"
+        + "\nПРИМЕР 1 (минимальный):\n"
+        + minimal
+        + "\n\nПРИМЕР 2 (расширенный, все типы действий):\n"
+        + extended
+        + "\n\nЗАДАНИЕ ПОЛЬЗОВАТЕЛЯ:\n"
+        + user_description.strip()
+        + "\n\nПАРАМЕТРЫ:\n"
+        + f"  стартовый URL: {start_url}\n"
+        + f"  браузер: {browser}\n"
+        + f"  голос TTS: {voice}\n"
+        + f"  язык: {language}\n"
+        + f"  разрешение: {resolution}\n"
+        + f"  fps: {fps}\n"
+    )
+
+
 def build_live_prompt(
     *,
     user_description: str,
@@ -201,38 +238,21 @@ def build_live_prompt(
     resolution: str = "1920x1080",
     fps: int = 30,
 ) -> list[dict]:
-    minimal = _read_example("live/live_minimal.yaml")
-    extended = _read_example("live/live_extended.yaml")
-
     system = (
         "Ты — генератор YAML-скриптов для системы aa-video-builder (live recording mode).\n"
         "Твоя задача — на основе описания пользователя сгенерировать корректный YAML-скрипт,\n"
-        "по которому браузер выполнит сценарий, а с экрана будет записано видео.\n\n"
-        + _LIVE_FIELDS_SPEC
-        + "\n"
-        + _COMMON_RULES
-        + "\n8. Первое действие первой сцены ОБЯЗАНО быть type: navigate с указанным url.\n"
-        + "9. XPath-селекторы строй максимально устойчивыми. Если не уверен в селекторе — используй scrollTo + wait.\n"
-        + "\nПРИМЕР 1 (минимальный):\n"
-        + minimal
-        + "\n\nПРИМЕР 2 (расширенный, все типы действий):\n"
-        + extended
+        "по которому браузер выполнит сценарий, а с экрана будет записано видео.\n"
+        "Возвращай ТОЛЬКО валидный YAML без markdown-обёрток."
     )
-
-    user = (
-        f"Сценарий: {user_description.strip()}\n"
-        "\n"
-        "Параметры:\n"
-        f"  стартовый URL: {start_url}\n"
-        f"  браузер: {browser}\n"
-        f"  голос TTS: {voice}\n"
-        f"  язык: {language}\n"
-        f"  разрешение: {resolution}\n"
-        f"  fps: {fps}\n"
-        "\n"
-        "Первое действие первой сцены должно быть navigate на указанный URL."
+    user = build_live_spec_block(
+        user_description=user_description,
+        start_url=start_url,
+        voice=voice,
+        browser=browser,
+        language=language,
+        resolution=resolution,
+        fps=fps,
     )
-
     return [
         {"role": "system", "content": system},
         {"role": "user", "content": user},
