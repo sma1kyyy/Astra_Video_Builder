@@ -18,8 +18,6 @@ acts:
         duration: 6
         tts: Переходим к документации Astra Automation, чтобы продемонстрировать live recording.
         voice: zahar
-        subtitles: true
-        subtitle_style: classic
         actions:
           action_1:
             type: navigate
@@ -33,8 +31,6 @@ acts:
         duration: 7
         tts: Раскрываем раздел и переходим в быстрый старт по клику на ссылку.
         voice: zahar
-        subtitles: true
-        subtitle_style: classic
         actions:
           action_1:
             type: click
@@ -54,8 +50,6 @@ acts:
         duration: 6
         tts: Используем поиск по документации, чтобы найти нужный раздел.
         voice: jane
-        subtitles: true
-        subtitle_style: contrast
         actions:
           action_1:
             type: input
@@ -70,8 +64,6 @@ acts:
         duration: 8
         tts: Демонстрируем скроллинг страницы вниз и обратно вверх.
         voice: jane
-        subtitles: true
-        subtitle_style: contrast
         actions:
           action_1:
             type: scrollDown
@@ -93,8 +85,6 @@ acts:
         duration: 6
         tts: Прокручиваем страницу к конкретному элементу, чтобы выделить его в кадре.
         voice: jane
-        subtitles: true
-        subtitle_style: cinematic
         actions:
           action_1:
             type: scrollTo
@@ -108,8 +98,6 @@ acts:
         duration: 4
         tts: На этом демонстрация завершена. Спасибо за внимание.
         voice: jane
-        subtitles: true
-        subtitle_style: cinematic
         actions:
           action_1:
             type: wait
