@@ -8,15 +8,19 @@ from pathlib import Path
 from typing import List
 
 import yaml
-from fastapi import FastAPI, File, HTTPException, Path as FPath, UploadFile
+from fastapi import FastAPI, File, HTTPException, Path as FPath, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
+from slowapi import Limiter
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
 from web.backend.app.adapter import video_to_payload
 from web.backend.app.blocks import list_blocks
 from web.backend.app.generator.router import router as generator_router
+from web.backend.app.generator.router import limiter as generator_limiter
 from web.backend.app.jobs import CeleryJobRegistry, list_output_files, public_status
 from web.backend.app.schemas import (
     JobCreatedResponse,
@@ -103,6 +107,15 @@ def _job_status(job_id: str) -> JobStatusResponse:
 
 def create_app() -> FastAPI:
     app = FastAPI(title="AA Video Builder Web", version="0.1.0")
+
+    app.state.limiter = generator_limiter
+
+    @app.exception_handler(RateLimitExceeded)
+    async def _rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:
+        return JSONResponse(
+            status_code=429,
+            content={"detail": f"rate limit exceeded: {exc.detail}"},
+        )
 
     app.add_middleware(
         CORSMiddleware,
