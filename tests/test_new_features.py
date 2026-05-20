@@ -330,12 +330,11 @@ class TestSubplacePositioning:
             engine = ScreenshotEngine("/tmp")
             engine._build_subtitle_clips(
                 scene=scene,
-                text="test text",
-                start=5.0,
-                duration=3.0,
-                fps=30,
+                subtitle_text="test text",
+                scene_duration=3.0,
+                audio_duration=3.0,
                 video_w=1920,
-                video_h=1080
+                video_h=1080,
             )
 
             return captured_y[0] if captured_y else -1

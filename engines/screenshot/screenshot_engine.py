@@ -692,7 +692,6 @@ class ScreenshotEngine:
         #Загрузка checkpoint 
         checkpoint = _load_checkpoint(self.output_dir, title)
         processed_scenes = checkpoint.get("scenes", {})
-        checkpoint_valid = bool(processed_scenes)
 
         all_scene_clips: List = []
         scene_cache_data = dict(processed_scenes)
@@ -800,23 +799,6 @@ class ScreenshotEngine:
                 log.info("OCR metadata: %s", ocr_path)
             except Exception as exc:
                 log.warning("Не удалось сохранить OCR metadata: %s", exc)
-        # ocr_path = os.path.join(self.output_dir, f"{title}_ocr.json")
-        # try:
-        #     with open(ocr_path, "w", encoding="utf-8") as f:
-        #         json.dump(
-        #             {
-        #                 "title": title,
-        #                 "resolution": video_obj.metadata.resolution,
-        #                 "ocr_available": is_ocr_available(),
-        #                 "results": self.ocr_results,
-        #             },
-        #             f,
-        #             ensure_ascii=False,
-        #             indent=2,
-        #         )
-        #     log.info("OCR metadata: %s", ocr_path)
-        # except Exception as exc:
-        #     log.warning("Не удалось сохранить OCR metadata: %s", exc)
 
         #очистка checkpoint после успешного рендера
         _clear_checkpoint(self.output_dir, title)

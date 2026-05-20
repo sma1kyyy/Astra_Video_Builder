@@ -45,6 +45,17 @@ def _safe_name(name: str) -> str:
     return cleaned
 
 
+def _get_record_or_404(job_id: str) -> dict:
+    record = registry.get(job_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="job not found")
+    return record
+
+
+def _raise_validation_error(exc: ValidationError) -> None:
+    raise HTTPException(status_code=422, detail=json.loads(exc.json()))
+
+
 def _enqueue(script_path: str, output_dir: str) -> str:
     from core.queue.tasks import render_video_task
 
@@ -53,9 +64,7 @@ def _enqueue(script_path: str, output_dir: str) -> str:
 
 
 def _job_status(job_id: str) -> JobStatusResponse:
-    record = registry.get(job_id)
-    if not record:
-        raise HTTPException(status_code=404, detail="job not found")
+    record = _get_record_or_404(job_id)
 
     from core.queue.celery_app import celery_app
 
@@ -161,7 +170,7 @@ def create_app() -> FastAPI:
         try:
             script = ScriptPayload(**payload)
         except ValidationError as exc:
-            raise HTTPException(status_code=422, detail=json.loads(exc.json()))
+            _raise_validation_error(exc)
         text = yaml.safe_dump(script.to_yaml_dict(), allow_unicode=True, sort_keys=False)
         return {"yaml": text}
 
@@ -196,7 +205,7 @@ def create_app() -> FastAPI:
         try:
             payload = video_to_payload(video)
         except ValidationError as exc:
-            raise HTTPException(status_code=422, detail=json.loads(exc.json()))
+            _raise_validation_error(exc)
 
         existing_assets = {p.name for p in ASSETS_DIR.iterdir() if p.is_file()}
         missing = [s.path for s in payload.scenes if s.path and s.path not in existing_assets]
@@ -212,7 +221,7 @@ def create_app() -> FastAPI:
         try:
             script = ScriptPayload(**payload)
         except ValidationError as exc:
-            raise HTTPException(status_code=422, detail=json.loads(exc.json()))
+            _raise_validation_error(exc)
 
         for scene in script.scenes:
             asset = ASSETS_DIR / os.path.basename(scene.path)
@@ -246,9 +255,7 @@ def create_app() -> FastAPI:
 
     @app.post("/api/jobs/{job_id}/cancel")
     def cancel_job(job_id: str) -> dict:
-        record = registry.get(job_id)
-        if not record:
-            raise HTTPException(status_code=404, detail="job not found")
+        _get_record_or_404(job_id)
         from core.queue.celery_app import celery_app
 
         celery_app.control.revoke(job_id, terminate=True, signal="SIGTERM")
@@ -256,9 +263,7 @@ def create_app() -> FastAPI:
 
     @app.get("/api/jobs/{job_id}/files/{name}")
     def get_job_file(job_id: str, name: str) -> FileResponse:
-        record = registry.get(job_id)
-        if not record:
-            raise HTTPException(status_code=404, detail="job not found")
+        record = _get_record_or_404(job_id)
         safe = _safe_name(name)
         full = Path(record["output_dir"]) / safe
         if not full.exists() or not full.is_file():

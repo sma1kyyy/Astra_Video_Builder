@@ -54,7 +54,6 @@ def _validate_args(args) -> bool:
 
 def _run_screenshot_mode(video, output_dir: str) -> str:
     from engines.screenshot.screenshot_engine import process_screenshot_video
-    #process_screenshot_video(video, output_dir)
     return process_screenshot_video(video, output_dir)
 
 
@@ -69,7 +68,6 @@ def _run_live_mode(video, output_dir: str) -> str | None:
 
     screen_recording_process = None
     scene_times: list = []
-    render_attempted = False
     final_path = None
 
     try:
@@ -113,8 +111,7 @@ def _run_live_mode(video, output_dir: str) -> str | None:
         stop_record(screen_recording_process)
         quit_driver()
 
-        if len(scene_times) > 0:
-            render_attempted = True
+        if scene_times:
             try:
                 final_path = live_recording_render(
                     output_dir,
@@ -134,8 +131,7 @@ def _run_live_mode(video, output_dir: str) -> str | None:
                 log.error("Команда записи: %s", diag["command"])
             except Exception:
                 log.exception("Не удалось смонтировать итоговое видео")
-
-        if not render_attempted:
+        else:
             log.error("Рендер не был запущен: нет валидных сцен.")
 
     return final_path
@@ -146,9 +142,7 @@ def process_video(file_path: str, output_dir: str) -> dict:
     video = parse(file_path)
 
     match video.metadata.mode:
-        case "screenshot":
-            output_file = _run_screenshot_mode(video, output_dir)
-        case "screenshots":
+        case "screenshot" | "screenshots":
             output_file = _run_screenshot_mode(video, output_dir)
         case "live":
             output_file = _run_live_mode(video, output_dir)
@@ -206,21 +200,9 @@ def main() -> int:
         return _check_task_status(args.task_id)
 
     try:
-        # log.info("Чтение скрипта: %s", args.file)
-        # video = parse(args.file)
-
-        # match video.metadata.mode:
-        #     case "screenshot":
-        #         _run_screenshot_mode(video, args.output)
-        #     case "live":
-        #         _run_live_mode(video, args.output)
-        #     case other:
-        #         log.error("Неизвестный режим: %s", other)
-        #         return 2
         if args.queue:
             return _enqueue_video(args)
 
-        #process_video(args.file, args.output)
         result = process_video(args.file, args.output)
         log.info(
             "Генерация завершена успешно: mode=%s, output=%s",

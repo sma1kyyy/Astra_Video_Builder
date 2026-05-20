@@ -38,6 +38,13 @@ def _normalize_action_type(value):
     return value
 
 
+def _sort_numbered_keys(items: dict, context_name: str) -> list:
+    try:
+        return sorted(items.keys(), key=lambda k: int(k.split("_")[1]))
+    except Exception:
+        raise ObjectIdIsntValid(f"ошибка в id {context_name}")
+
+
 def parse(filePath: str) -> VideoObject:
     """Парсит yaml-скрипт и возвращает объект видео с актами."""
     try:
@@ -66,10 +73,7 @@ def __parse_acts(acts: dict, mode: str) -> List[ActObject]:
         if not key.startswith("act_"):
             raise ExtraAttributes(f"acts/{key}")
 
-    try:
-        sorted_keys = sorted(acts.keys(), key=lambda k: int(k.split("_")[1]))
-    except Exception:
-        raise ObjectIdIsntValid("ошибка в id акта")
+    sorted_keys = _sort_numbered_keys(acts, "акта")
 
     return [__parse_act(acts[key], key, mode) for key in sorted_keys]
 
@@ -92,10 +96,7 @@ def __parse_scenes(scenes: dict, mode: str) -> List[SceneObject]:
     for key in scenes.keys():
         if not key.startswith("scene_"):
             raise ExtraAttributes(f"scenes/{key}")
-    try:
-        sorted_keys = sorted(scenes.keys(), key=lambda k: int(k.split("_")[1]))
-    except Exception:
-        raise ObjectIdIsntValid("ошибка в id сцены")
+    sorted_keys = _sort_numbered_keys(scenes, "сцены")
 
     return [__parse_scene(scenes[key], key, mode) for key in sorted_keys]
 
@@ -123,30 +124,21 @@ def __parse_scene(scene: dict, scene_key: str, mode: str) -> SceneObject:
         raise NoRequiredAttribute(f"scenes/{scene_key}/path")
 
     if mode == "live":
-        actions = __parse_actions(actions_raw)
-        return SceneObject(
-            name=name,
-            path=path or "",
-            images=images,
-            texts=texts,
-            audio=audio,
-            actions=actions,
-            **scene_payload,
-        )
+        extra = {"actions": __parse_actions(actions_raw)}
+    elif mode == "screenshot":
+        extra = {"annotations": __parse_annotations(annotations_raw)}
+    else:
+        raise IncorrectMode(mode)
 
-    if mode == "screenshot":
-        annotations = __parse_annotations(annotations_raw)
-        return SceneObject(
-            name=name,
-            path=path or "",
-            images=images,
-            texts=texts,
-            audio=audio,
-            annotations=annotations,
-            **scene_payload,
-        )
-
-    raise IncorrectMode(mode)
+    return SceneObject(
+        name=name,
+        path=path or "",
+        images=images,
+        texts=texts,
+        audio=audio,
+        **extra,
+        **scene_payload,
+    )
 
 
 def __parse_annotations(annotations: dict) -> List[AnnotationObject]:
@@ -157,10 +149,7 @@ def __parse_annotations(annotations: dict) -> List[AnnotationObject]:
         if not key.startswith("annotation_"):
             raise ExtraAttributes(f"annotations/{key}")
 
-    try:
-        sorted_keys = sorted(annotations.keys(), key=lambda k: int(k.split("_")[1]))
-    except Exception:
-        raise ObjectIdIsntValid("ошибка в id annotation")
+    sorted_keys = _sort_numbered_keys(annotations, "annotation")
 
     valid_fields = AnnotationObject.get_static_attributes()
     result = []
@@ -171,7 +160,6 @@ def __parse_annotations(annotations: dict) -> List[AnnotationObject]:
             raise NoValue(f"annotations/{key}")
 
         required = ["type"]
-        #required = ["type", "transparency"]
         for req in required:
             if item.get(req) is None:
                 raise NoRequiredAttribute(f"annotations/{key}/{req}")
@@ -221,7 +209,7 @@ def __parse_actions(actions: dict) -> List[ActionObject]:
     if not actions:
         return []
 
-    sorted_keys = sorted(actions.keys(), key=lambda k: int(k.split("_")[1]))
+    sorted_keys = _sort_numbered_keys(actions, "action")
     result = []
 
     for key in sorted_keys:
