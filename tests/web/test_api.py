@@ -279,3 +279,48 @@ def test_generator_status_endpoint(client):
     assert isinstance(body["llm_configured"], bool)
     assert isinstance(body["vision_enabled"], bool)
     assert isinstance(body["ocr_available"], bool)
+
+
+def test_analyze_asset_404_on_missing(client):
+    res = client.post("/api/generator/analyze-asset", json={"filename": "nope.png"})
+    assert res.status_code == 404
+
+
+def test_analyze_asset_uses_cache(client, monkeypatch):
+    import io
+    from PIL import Image
+
+    # PNG with some content
+    buf = io.BytesIO()
+    Image.new("RGB", (200, 80), "white").save(buf, format="PNG")
+    buf.seek(0)
+
+    upload = client.post(
+        "/api/assets",
+        files={"file": ("ocr_test.png", buf, "image/png")},
+    )
+    assert upload.status_code == 200
+
+    calls = {"n": 0}
+
+    def fake_run_ocr(path, *, lang, min_conf):
+        calls["n"] += 1
+        return [{"text": "Hello", "bbox": [10, 10, 100, 50], "conf": 95.0}]
+
+    from web.backend.app.generator import ocr_service
+    monkeypatch.setattr(ocr_service, "_run_ocr", fake_run_ocr)
+
+    r1 = client.post("/api/generator/analyze-asset", json={"filename": "ocr_test.png"})
+    assert r1.status_code == 200
+    body1 = r1.json()
+    assert body1["cached"] is False
+    assert body1["items_count"] == 1
+    assert body1["items"][0]["text"] == "Hello"
+    assert calls["n"] == 1
+
+    r2 = client.post("/api/generator/analyze-asset", json={"filename": "ocr_test.png"})
+    assert r2.status_code == 200
+    body2 = r2.json()
+    assert body2["cached"] is True
+    assert body2["items_count"] == 1
+    assert calls["n"] == 1
