@@ -62,7 +62,8 @@ class GenerateRequest(BaseModel):
     browser: Literal["chrome", "firefox"] = "chrome"
     asset_filenames: list[str] = Field(default_factory=list)
     asset_descriptions: dict[str, str] | None = None
-    voice: Literal["jane", "zahar"] = "jane"
+    voice: Literal["jane", "zahar", "off"] = "jane"
+    subtitles: Literal["on", "off"] = "on"
     language: Literal["ru", "en"] = "ru"
     resolution: str = "1920x1080"
     fps: int = Field(default=24, ge=1, le=120)
@@ -168,11 +169,16 @@ async def _generate_live(req: GenerateRequest, client: LLMClient) -> GenerateRes
     if req.total_timeout is not None:
         kwargs["total_timeout"] = req.total_timeout
 
+    augmented_task = req.task
+    addendum = _build_options_addendum(req)
+    if addendum:
+        augmented_task = f"{req.task}\n\n{addendum}"
+
     result = await run_agent_loop(
-        task_description=req.task,
+        task_description=augmented_task,
         start_url=req.start_url,
         llm_client=client,
-        voice=req.voice,
+        voice=req.voice if req.voice != "off" else "jane",
         browser=req.browser,
         language=req.language,
         resolution=req.resolution,
@@ -221,11 +227,12 @@ async def _generate_screenshot(
         asset_filenames=[p.name for p in asset_paths],
         ocr_per_asset=ocr_per_asset or None,
         asset_descriptions=req.asset_descriptions,
-        voice=req.voice,
+        voice=req.voice if req.voice != "off" else "jane",
         language=req.language,
         resolution=req.resolution,
         fps=req.fps,
     )
+    messages.append({"role": "user", "content": _build_options_addendum(req)})
 
     yaml_script = await client.complete(messages)
     yaml_script = _strip_markdown_fences(yaml_script)
@@ -258,6 +265,23 @@ async def _generate_screenshot(
         ocr_used=ocr_used,
         self_correction_used=self_correction_used,
     )
+
+
+def _build_options_addendum(req: GenerateRequest) -> str:
+    notes: list[str] = []
+    if req.voice == "off":
+        notes.append(
+            "Озвучка ОТКЛЮЧЕНА: НЕ добавляй поля `tts`, `voice`, `subtitles`, `subtitle_style`, "
+            "`subtitle_font_size`, `subtitle_max_chars`, `subtitle_bg_opacity`, `subplace` ни в одну сцену."
+        )
+    elif req.mode == "screenshot" and req.subtitles == "off":
+        notes.append(
+            "Субтитры ОТКЛЮЧЕНЫ: НЕ добавляй поля `subtitles`, `subtitle_style`, `subtitle_font_size`, "
+            "`subtitle_max_chars`, `subtitle_bg_opacity`, `subplace`. Озвучка (`tts`, `voice`) остаётся."
+        )
+    if not notes:
+        return ""
+    return "ДОПОЛНИТЕЛЬНЫЕ ОГРАНИЧЕНИЯ:\n" + "\n".join(f"- {n}" for n in notes)
 
 
 def _strip_markdown_fences(text: str) -> str:

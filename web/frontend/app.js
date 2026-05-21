@@ -12,6 +12,23 @@ const state = {
   yamlFilename: "",
   missingAssets: new Set(),
   knownAssets: new Set(),
+  activeMode: null,
+  generator: {
+    mode: "live",
+    task: "",
+    url: "",
+    voice: "jane",
+    subtitles: "on",
+    language: "ru",
+    resolution: "1920x1080",
+    fps: 30,
+    browser: "chrome",
+    selectedAssets: [],
+    assetDescriptions: {},
+    yaml: "",
+    meta: null,
+    abortController: null,
+  },
 };
 
 function setTheme(theme) {
@@ -49,9 +66,22 @@ function toast(message, kind = "info", timeout = 6000) {
 }
 
 function showMode(mode) {
-  $("#entry-mode").hidden = mode !== "entry";
+  state.activeMode = mode === "entry" ? null : mode;
+  $("#entry-mode").hidden = false;
   $("#editor-mode").hidden = mode !== "editor";
   $("#builder-mode").hidden = mode !== "builder";
+  $("#generator-mode").hidden = mode !== "generator";
+
+  $$(".choice-card").forEach(card => {
+    card.classList.toggle("active", card.dataset.mode === state.activeMode);
+  });
+
+  syncAssetsCardVisibility();
+}
+
+function toggleMode(mode) {
+  if (state.activeMode === mode) showMode("entry");
+  else showMode(mode);
 }
 
 function escapeHtml(s) {
@@ -489,6 +519,381 @@ function resetBuilder() {
   renderScenes();
 }
 
+async function openGenerator() {
+  showMode("generator");
+  restoreGeneratorForm();
+  syncGeneratorModeFields();
+  await refreshGeneratorStatus();
+  if (state.generator.yaml) {
+    renderGeneratorResult(state.generator.meta || { valid: true, mode: state.generator.mode });
+  } else {
+    $("#generator-result").hidden = true;
+    updateGeneratorActions();
+  }
+}
+
+function persistGeneratorForm() {
+  const g = state.generator;
+  g.mode = document.querySelector('input[name="generator-mode-choice"]:checked')?.value || "live";
+  g.task = $("#generator-task").value;
+  g.url = $("#generator-url").value;
+  g.voice = $("#generator-voice").value;
+  g.subtitles = $("#generator-subtitles").value;
+  g.language = $("#generator-language").value;
+  g.resolution = $("#generator-resolution").value;
+  g.fps = parseInt($("#generator-fps").value, 10) || 30;
+  g.browser = $("#generator-browser").value;
+  g.selectedAssets = [...document.querySelectorAll('#generator-assets-list input[type=checkbox]:checked')].map(c => c.value);
+  const descs = {};
+  document.querySelectorAll('#generator-assets-list input.asset-desc').forEach(inp => {
+    const v = (inp.value || "").trim();
+    if (v) descs[inp.dataset.filename] = v;
+  });
+  g.assetDescriptions = descs;
+}
+
+function restoreGeneratorForm() {
+  const g = state.generator;
+  const radio = document.querySelector(`input[name="generator-mode-choice"][value="${g.mode}"]`);
+  if (radio) radio.checked = true;
+  $("#generator-task").value = g.task || "";
+  $("#generator-url").value = g.url || "";
+  $("#generator-voice").value = g.voice || "jane";
+  $("#generator-subtitles").value = g.subtitles || "on";
+  $("#generator-language").value = g.language || "ru";
+  $("#generator-resolution").value = g.resolution || "1920x1080";
+  $("#generator-fps").value = g.fps || 30;
+  $("#generator-browser").value = g.browser || "chrome";
+  updateTaskPlaceholder();
+}
+
+const _TASK_PLACEHOLDERS = {
+  live: "Например: открыть главную gitflic.ru, проскроллить вниз, нажать кнопку Войти",
+  screenshot: "Например: покажи процесс логина — сначала экран входа, потом главная страница профиля",
+};
+
+function updateTaskPlaceholder() {
+  const mode = document.querySelector('input[name="generator-mode-choice"]:checked')?.value || "live";
+  $("#generator-task").placeholder = _TASK_PLACEHOLDERS[mode];
+}
+
+function clearGeneratorAll(options = {}) {
+  const keepMode = options.keepMode === true;
+  const silent = options.silent === true;
+  const mode = keepMode ? state.generator.mode : "live";
+  state.generator = {
+    mode,
+    task: "",
+    url: "",
+    voice: "jane",
+    subtitles: "on",
+    language: "ru",
+    resolution: "1920x1080",
+    fps: 30,
+    browser: "chrome",
+    selectedAssets: [],
+    assetDescriptions: {},
+    yaml: "",
+    meta: null,
+    abortController: null,
+  };
+  restoreGeneratorForm();
+  syncGeneratorModeFields();
+  $("#generator-result").hidden = true;
+  $("#generator-yaml-text").value = "";
+  $("#generator-yaml-highlight").innerHTML = "";
+  $("#generator-meta").innerHTML = "";
+  updateGeneratorActions();
+  if (!silent) toast("Форма очищена", "info", 2000);
+}
+
+function resetGenerator() {
+  clearGeneratorAll();
+}
+
+function syncGeneratorModeFields() {
+  const mode = document.querySelector('input[name="generator-mode-choice"]:checked')?.value || "live";
+  $("#generator-live-fields").hidden = mode !== "live";
+  $("#generator-screenshot-fields").hidden = mode !== "screenshot";
+  $("#generator-browser-wrap").hidden = mode !== "live";
+  $("#generator-subtitles-wrap").hidden = mode !== "screenshot";
+  syncAssetsCardVisibility();
+  updateTaskPlaceholder();
+  if (mode === "screenshot") refreshGeneratorAssets();
+}
+
+function syncAssetsCardVisibility() {
+  const card = $("#assets-card");
+  if (!card) return;
+  const generatorActive = state.activeMode === "generator";
+  const genMode = document.querySelector('input[name="generator-mode-choice"]:checked')?.value || "live";
+  const hideForGeneratorLive = generatorActive && genMode === "live";
+  card.hidden = hideForGeneratorLive;
+}
+
+async function refreshGeneratorStatus() {
+  try {
+    const r = await fetch(`${API}/generator/status`);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const s = await r.json();
+    const parts = [];
+    if (s.llm_configured) parts.push(`model: ${s.llm_model}`); else parts.push("LLM не настроен");
+    if (s.ocr_available) parts.push("OCR ok"); else parts.push("OCR недоступен");
+    parts.push(`rate ${s.rate_limit}`);
+    $("#generator-status").textContent = parts.join(" · ");
+  } catch (e) {
+    $("#generator-status").textContent = "не удалось получить статус";
+  }
+}
+
+let _generatorAssetsRefreshInFlight = false;
+async function refreshGeneratorAssets() {
+  if (_generatorAssetsRefreshInFlight) return;
+  _generatorAssetsRefreshInFlight = true;
+  const list = $("#generator-assets-list");
+  try {
+    const r = await fetch(`${API}/assets`);
+    const assets = (await r.json()).assets || [];
+    list.innerHTML = "";
+    if (!assets.length) {
+      list.innerHTML = '<li class="muted">Сначала загрузите скриншоты в разделе справа</li>';
+      return;
+    }
+    const selectedSet = new Set(state.generator.selectedAssets || []);
+    const descriptions = state.generator.assetDescriptions || {};
+    for (const a of assets) {
+      const li = document.createElement("li");
+      const checked = selectedSet.has(a.filename) ? " checked" : "";
+      const desc = descriptions[a.filename] || "";
+      li.innerHTML = `
+        <label class="asset-pick">
+          <input type="checkbox" value="${escapeHtml(a.filename)}"${checked} />
+          <span class="asset-name">${escapeHtml(a.filename)}</span>
+        </label>
+        <input type="text" class="asset-desc" data-filename="${escapeHtml(a.filename)}"
+          placeholder="описание (необязательно)" value="${escapeHtml(desc)}" />
+      `;
+      li.querySelector('input[type="checkbox"]').addEventListener("change", persistGeneratorForm);
+      li.querySelector('input.asset-desc').addEventListener("input", persistGeneratorForm);
+      list.appendChild(li);
+    }
+  } catch (e) {
+    list.innerHTML = '<li class="muted">не удалось загрузить список</li>';
+  } finally {
+    _generatorAssetsRefreshInFlight = false;
+  }
+}
+
+function buildGeneratorRequest() {
+  const mode = document.querySelector('input[name="generator-mode-choice"]:checked')?.value || "live";
+  const task = $("#generator-task").value.trim();
+  if (!task) { toast("Опишите сценарий", "error"); return null; }
+
+  const base = {
+    mode,
+    task,
+    voice: $("#generator-voice").value,
+    subtitles: $("#generator-subtitles").value,
+    language: $("#generator-language").value,
+    resolution: $("#generator-resolution").value.trim() || "1920x1080",
+    fps: parseInt($("#generator-fps").value, 10) || 30,
+  };
+
+  if (mode === "live") {
+    const url = $("#generator-url").value.trim();
+    if (!url) { toast("Укажите стартовый URL", "error"); return null; }
+    base.start_url = url;
+    base.browser = $("#generator-browser").value;
+  } else {
+    const selected = [...document.querySelectorAll('#generator-assets-list input[type=checkbox]:checked')].map(c => c.value);
+    if (!selected.length) { toast("Выберите хотя бы один скриншот", "error"); return null; }
+    base.asset_filenames = selected;
+    const descs = {};
+    document.querySelectorAll('#generator-assets-list input.asset-desc').forEach(inp => {
+      const v = (inp.value || "").trim();
+      if (v && selected.includes(inp.dataset.filename)) descs[inp.dataset.filename] = v;
+    });
+    if (Object.keys(descs).length) base.asset_descriptions = descs;
+  }
+
+  return base;
+}
+
+async function runGenerator() {
+  persistGeneratorForm();
+  const req = buildGeneratorRequest();
+  if (!req) return;
+
+  setGeneratorLoading(true);
+  const controller = new AbortController();
+  state.generator.abortController = controller;
+
+  try {
+    const r = await fetch(`${API}/generator/generate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(req),
+      signal: controller.signal,
+    });
+    const body = await r.json();
+    if (!r.ok) {
+      const detail = typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail);
+      toast(`Ошибка ${r.status}: ${detail}`, "error", 10000);
+      return;
+    }
+    state.generator.yaml = body.yaml_script || "";
+    state.generator.meta = body;
+    renderGeneratorResult(body);
+    setTimeout(() => {
+      $("#generator-result")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
+  } catch (e) {
+    if (e.name === "AbortError") {
+      toast("Генерация отменена", "info", 3000);
+    } else {
+      toast(`Сетевая ошибка: ${e.message}`, "error", 10000);
+    }
+  } finally {
+    setGeneratorLoading(false);
+    state.generator.abortController = null;
+  }
+}
+
+function cancelGenerator() {
+  if (state.generator.abortController) state.generator.abortController.abort();
+}
+
+function setGeneratorLoading(loading) {
+  $("#generator-overlay").hidden = !loading;
+  $("#generator-run").disabled = loading;
+  $("#generator-clear").disabled = loading;
+  $("#generator-back").disabled = loading;
+}
+
+function updateGeneratorActions() {
+  const meta = state.generator.meta;
+  const yaml = state.generator.yaml;
+  const hasAny = !!yaml;
+  const hasValid = hasAny && meta?.valid;
+  const isLive = meta?.mode === "live";
+  $("#generator-download").hidden = !hasAny;
+  $("#generator-use-in-editor").hidden = !hasValid || isLive;
+  $("#generator-render").hidden = !hasValid || isLive;
+}
+
+function extractYamlTitle(yaml) {
+  if (!yaml) return null;
+  const lines = yaml.split("\n");
+  let inMeta = false;
+  for (const raw of lines) {
+    const line = raw.replace(/\r$/, "");
+    if (/^metadata\s*:/i.test(line)) { inMeta = true; continue; }
+    if (inMeta) {
+      if (/^\S/.test(line)) break;
+      const m = line.match(/^\s+title\s*:\s*['"]?([^'"\n]+?)['"]?\s*$/);
+      if (m) return m[1].trim();
+    }
+  }
+  return null;
+}
+
+function downloadYaml() {
+  const yaml = state.generator.yaml;
+  if (!yaml) return;
+  const rawTitle = extractYamlTitle(yaml) || "generated";
+  const slug = rawTitle.replace(/[^a-zA-Z0-9._-]+/g, "_").slice(0, 80) || "generated";
+  const blob = new Blob([yaml], { type: "application/x-yaml;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${slug}.yaml`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function openGeneratedInBuilder() {
+  const yaml = state.generator.yaml;
+  if (!yaml) return;
+  parseYamlToBuilder(yaml);
+}
+
+async function parseYamlToBuilder(yaml) {
+  const blob = new Blob([yaml], { type: "application/x-yaml" });
+  const fd = new FormData();
+  fd.append("file", blob, "generated.yaml");
+  let resp;
+  try {
+    resp = await fetch(`${API}/scripts/parse`, { method: "POST", body: fd });
+  } catch (e) {
+    toast(`Ошибка сети: ${e.message}`, "error");
+    return;
+  }
+  if (!resp.ok) {
+    const data = await resp.json().catch(() => ({}));
+    const detail = typeof data.detail === "string" ? data.detail : JSON.stringify(data.detail || resp.statusText);
+    toast(`Не удалось распарсить YAML: ${detail}`, "error", 9000);
+    return;
+  }
+  const data = await resp.json();
+  state.yamlText = data.yaml;
+  state.yamlFilename = "generated.yaml";
+  state.missingAssets = new Set(data.missing_assets || []);
+  await loadBlocks();
+  applyPayloadToBuilder(data.payload);
+  showMode("builder");
+  if (state.missingAssets.size) {
+    toast(`Не хватает ассетов: ${[...state.missingAssets].join(", ")}`, "warn");
+  }
+}
+
+async function renderGeneratedYaml() {
+  const yaml = state.generator.yaml;
+  if (!yaml) return;
+  state.yamlText = yaml;
+  state.yamlFilename = "generated.yaml";
+  $("#yaml-text").value = yaml;
+  await runFromYaml();
+}
+
+function renderGeneratorResult(body) {
+  $("#generator-result").hidden = false;
+  const yaml = state.generator.yaml || "";
+  $("#generator-yaml-text").value = yaml;
+  $("#generator-yaml-highlight").innerHTML = highlightYaml(yaml);
+
+  const meta = $("#generator-meta");
+  meta.innerHTML = "";
+  const badge = (text, kind = "") => `<span class="badge ${kind}">${escapeHtml(text)}</span>`;
+
+  if (body.valid) meta.innerHTML += badge("YAML валиден", "ok");
+  else meta.innerHTML += badge(`YAML невалиден: ${body.parse_error || "?"}`, "error");
+
+  if (body.mode === "live") {
+    if (body.iterations != null) meta.innerHTML += badge(`iter ${body.iterations}`);
+    if (body.verification_passed) meta.innerHTML += badge("verify ok", "ok");
+    else if (body.verification_attempts) meta.innerHTML += badge(`verify failed (${body.verification_attempts} попыток)`, "warn");
+    if (body.hit_iteration_limit) meta.innerHTML += badge("лимит итераций", "warn");
+    if (body.timed_out) meta.innerHTML += badge("таймаут", "warn");
+    if (body.exploration_incomplete) meta.innerHTML += badge("неполная разведка", "warn");
+  } else if (body.mode === "screenshot") {
+    if (body.ocr_used) meta.innerHTML += badge("OCR применён", "ok");
+    if (body.self_correction_used) meta.innerHTML += badge("self-correction", "warn");
+  }
+
+  if (body.notes) {
+    const note = document.createElement("div");
+    note.className = "muted";
+    note.style.fontSize = "13px";
+    note.style.whiteSpace = "pre-wrap";
+    note.textContent = body.notes;
+    meta.appendChild(note);
+  }
+
+  updateGeneratorActions();
+}
+
 async function init() {
   initTheme();
   $("#theme-toggle").onclick = () => {
@@ -507,14 +912,18 @@ async function init() {
     };
   });
 
-  $("#btn-pick-yaml").onclick = () => $("#yaml-input").click();
+  $("#btn-pick-yaml").onclick = e => { e.stopPropagation(); $("#yaml-input").click(); };
   $("#choice-upload").addEventListener("click", e => {
-    if (e.target.tagName !== "BUTTON") $("#yaml-input").click();
+    if (e.target.tagName === "BUTTON") return;
+    if (state.activeMode === "editor") { showMode("entry"); return; }
+    if (state.yamlText) showMode("editor");
+    else $("#yaml-input").click();
   });
   $("#yaml-input").onchange = e => { if (e.target.files[0]) handleYamlFile(e.target.files[0]); };
 
   $("#choice-builder").addEventListener("click", async e => {
     if (e.target.id === "btn-open-builder" || e.target.tagName !== "BUTTON") {
+      if (state.activeMode === "builder") { showMode("entry"); return; }
       await loadBlocks();
       if (!state.scenes.length) state.scenes.push(makeScene());
       renderMetadata();
@@ -523,8 +932,54 @@ async function init() {
     }
   });
 
-  $("#editor-back").onclick = () => { resetEditor(); showMode("entry"); };
-  $("#builder-back").onclick = () => { resetBuilder(); showMode("entry"); };
+  $("#choice-generator").addEventListener("click", async e => {
+    if (e.target.id === "btn-open-generator" || e.target.tagName !== "BUTTON") {
+      if (state.activeMode === "generator") { showMode("entry"); return; }
+      await openGenerator();
+    }
+  });
+
+  $("#editor-back").onclick = () => showMode("entry");
+  $("#builder-back").onclick = () => showMode("entry");
+  $("#generator-back").onclick = () => showMode("entry");
+
+  document.querySelectorAll('input[name="generator-mode-choice"]').forEach(radio => {
+    radio.addEventListener("change", () => {
+      if (!radio.checked) return;
+      if (state.generator.mode === radio.value) return;
+      const previousMode = state.generator.mode;
+      state.generator.mode = radio.value;
+      clearGeneratorAll({ keepMode: true, silent: true });
+      if (radio.value === "screenshot") refreshGeneratorAssets();
+      toast(`Режим переключён на ${radio.value === "live" ? "Live" : "Screenshot"}, данные очищены`, "info", 3000);
+    });
+  });
+
+  ["generator-task", "generator-url", "generator-resolution", "generator-fps"].forEach(id => {
+    const el = $("#" + id);
+    if (el) el.addEventListener("input", () => persistGeneratorForm());
+  });
+  ["generator-voice", "generator-language", "generator-browser"].forEach(id => {
+    const el = $("#" + id);
+    if (el) el.addEventListener("change", () => persistGeneratorForm());
+  });
+
+  $("#generator-yaml-text").addEventListener("input", () => {
+    const t = $("#generator-yaml-text");
+    state.generator.yaml = t.value;
+    $("#generator-yaml-highlight").innerHTML = highlightYaml(t.value);
+  });
+  $("#generator-yaml-text").addEventListener("scroll", () => {
+    const h = $("#generator-yaml-highlight"), t = $("#generator-yaml-text");
+    h.scrollTop = t.scrollTop; h.scrollLeft = t.scrollLeft;
+  });
+
+  $("#generator-run").onclick = runGenerator;
+  $("#generator-cancel").onclick = cancelGenerator;
+  $("#generator-clear").onclick = clearGeneratorAll;
+  $("#generator-use-in-editor").onclick = openGeneratedInBuilder;
+  $("#generator-render").onclick = renderGeneratedYaml;
+  $("#generator-download").onclick = downloadYaml;
 
   $("#editor-run").onclick = runFromYaml;
   $("#builder-run").onclick = () => runScript(buildPayload());

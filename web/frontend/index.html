@@ -34,7 +34,7 @@
     </section>
 
     <section class="entry" id="entry-mode">
-      <article class="card choice-card" id="choice-upload">
+      <article class="card choice-card" id="choice-upload" data-mode="editor">
         <div class="choice-icon">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 21h14"/></svg>
         </div>
@@ -44,13 +44,22 @@
         <input type="file" id="yaml-input" accept=".yml,.yaml,.YML,.YAML" hidden />
       </article>
 
-      <article class="card choice-card" id="choice-builder">
+      <article class="card choice-card" id="choice-builder" data-mode="builder">
         <div class="choice-icon">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M3 12h12M3 18h18"/></svg>
         </div>
         <h2>Конструктор</h2>
         <p>Соберите сценарий по блокам: метаданные, сцены, аннотации.</p>
         <button type="button" class="btn" id="btn-open-builder">Открыть</button>
+      </article>
+
+      <article class="card choice-card" id="choice-generator" data-mode="generator">
+        <div class="choice-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.5 5 5.5.8-4 3.9.95 5.5L12 15.6 7.05 18.2 8 12.7 4 8.8l5.5-.8L12 3z"/></svg>
+        </div>
+        <h2>AI-генератор</h2>
+        <p>Опишите сценарий словами — нейросеть подготовит YAML-скрипт. Поддерживает Live и Screenshot.</p>
+        <button type="button" class="btn" id="btn-open-generator">Открыть</button>
       </article>
     </section>
 
@@ -91,6 +100,114 @@
         </div>
 
         <pre id="preview" hidden></pre>
+      </div>
+    </section>
+
+    <section class="generator-mode" id="generator-mode" hidden>
+      <div class="card generator-card">
+        <div class="generator-head">
+          <h2>AI-генератор YAML-скриптов</h2>
+          <span class="muted" id="generator-status"></span>
+        </div>
+
+        <div class="generator-body" id="generator-body">
+          <div class="generator-mode-switch">
+            <label class="radio-pill">
+              <input type="radio" name="generator-mode-choice" value="live" checked />
+              <span>Live Recording</span>
+            </label>
+            <label class="radio-pill">
+              <input type="radio" name="generator-mode-choice" value="screenshot" />
+              <span>Screenshot</span>
+            </label>
+          </div>
+
+          <div class="generator-fields">
+            <label class="field">
+              <span class="field-label">Описание сценария <span class="req">*</span></span>
+              <textarea id="generator-task" rows="4"
+                placeholder="Например: открыть главную gitflic.ru, проскроллить вниз, нажать кнопку Войти"></textarea>
+            </label>
+
+            <div class="field" id="generator-live-fields">
+              <span class="field-label">Стартовый URL <span class="req">*</span></span>
+              <input type="url" id="generator-url" placeholder="https://gitflic.ru" />
+            </div>
+
+            <div class="field" id="generator-screenshot-fields" hidden>
+              <span class="field-label">Скриншоты для использования</span>
+              <p class="muted">Выберите из загруженных в раздел справа. OCR подключится автоматически.</p>
+              <ul id="generator-assets-list" class="generator-assets-list"></ul>
+            </div>
+
+            <div class="generator-params">
+              <label class="field small">
+                <span class="field-label">Голос TTS</span>
+                <select id="generator-voice">
+                  <option value="jane" selected>jane</option>
+                  <option value="zahar">zahar</option>
+                  <option value="off">без озвучки</option>
+                </select>
+              </label>
+              <label class="field small" id="generator-subtitles-wrap" hidden>
+                <span class="field-label">Субтитры</span>
+                <select id="generator-subtitles">
+                  <option value="on" selected>включены</option>
+                  <option value="off">выключены</option>
+                </select>
+              </label>
+              <label class="field small">
+                <span class="field-label">Язык</span>
+                <select id="generator-language">
+                  <option value="ru" selected>ru</option>
+                  <option value="en">en</option>
+                </select>
+              </label>
+              <label class="field small">
+                <span class="field-label">Разрешение</span>
+                <input type="text" id="generator-resolution" value="1920x1080" />
+              </label>
+              <label class="field small">
+                <span class="field-label">FPS</span>
+                <input type="number" id="generator-fps" value="30" min="1" max="120" />
+              </label>
+              <label class="field small" id="generator-browser-wrap">
+                <span class="field-label">Браузер</span>
+                <select id="generator-browser">
+                  <option value="chrome" selected>chrome</option>
+                  <option value="firefox">firefox</option>
+                </select>
+              </label>
+            </div>
+          </div>
+
+          <div class="generator-overlay" id="generator-overlay" hidden>
+            <button type="button" class="icon-btn overlay-cancel" id="generator-cancel"
+              aria-label="Отменить генерацию" title="Отменить">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+            <div class="overlay-spinner" aria-hidden="true"></div>
+            <div class="overlay-text">Генерация...<br/><span class="muted">это может занять до 3 минут</span></div>
+          </div>
+        </div>
+
+        <div class="generator-result" id="generator-result" hidden>
+          <div class="generator-meta" id="generator-meta"></div>
+          <div class="yaml-editor generator-yaml-editor">
+            <pre class="yaml-highlight" aria-hidden="true" id="generator-yaml-highlight"></pre>
+            <textarea id="generator-yaml-text" spellcheck="false" autocomplete="off"></textarea>
+          </div>
+        </div>
+
+        <div class="generator-actions">
+          <button type="button" class="btn ghost back-btn" id="generator-back">← Назад</button>
+          <span class="actions-spacer"></span>
+          <button type="button" class="btn ghost" id="generator-clear">Очистить</button>
+          <button type="button" class="btn ghost" id="generator-download" hidden>⬇ Скачать YAML</button>
+          <button type="button" class="btn ghost" id="generator-use-in-editor" hidden>Открыть в редакторе</button>
+          <button type="button" class="btn ghost" id="generator-render" hidden>🚀 Запустить рендер</button>
+          <button type="button" class="btn primary" id="generator-run">Сгенерировать</button>
+        </div>
       </div>
     </section>
 

@@ -177,7 +177,7 @@ code, pre, textarea.mono { font-family: var(--font-mono); }
 
 .entry {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 18px;
 }
 @media (max-width: 720px) { .entry { grid-template-columns: 1fr; } }
@@ -568,3 +568,223 @@ code, pre, textarea.mono { font-family: var(--font-mono); }
 
 .back-btn { padding-left: 6px; }
 hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+
+.choice-card.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent), var(--shadow-lg);
+}
+.choice-card.active .choice-icon { background: var(--accent); color: var(--bg); }
+
+@keyframes panel-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.editor-mode, .builder-mode, .generator-mode {
+  animation: panel-in 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.choice-card {
+  transition:
+    transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 220ms ease,
+    border-color 220ms ease,
+    background 220ms ease;
+}
+.choice-card .choice-icon {
+  transition: background 220ms ease, color 220ms ease;
+}
+
+.generator-mode { display: block; }
+.generator-card { display: flex; flex-direction: column; gap: 18px; }
+.generator-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.generator-head h2 { margin: 0; font-size: 22px; font-weight: 600; }
+.generator-head .muted { font-size: 13px; }
+
+.generator-body { position: relative; display: flex; flex-direction: column; gap: 14px; }
+
+.generator-mode-switch {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  width: max-content;
+}
+.radio-pill {
+  position: relative;
+  cursor: pointer;
+}
+.radio-pill input { position: absolute; opacity: 0; pointer-events: none; }
+.radio-pill span {
+  display: inline-block;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--text-soft);
+  transition: var(--transition);
+}
+.radio-pill input:checked + span {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.generator-fields { display: flex; flex-direction: column; gap: 14px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field-label { font-size: 13px; color: var(--text-soft); font-weight: 500; }
+.field .req { color: var(--accent); }
+.field textarea, .field input[type=text], .field input[type=url], .field input[type=number], .field select {
+  appearance: none;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text);
+  transition: var(--transition);
+}
+.field textarea:focus, .field input:focus, .field select:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--bg-elev);
+}
+.field textarea { resize: vertical; min-height: 80px; }
+
+.generator-params {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+.field.small { gap: 4px; }
+
+.generator-assets-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+.generator-assets-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+}
+.generator-assets-list .muted { font-size: 12px; }
+.generator-assets-list .asset-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  min-width: 0;
+  max-width: 40%;
+}
+.generator-assets-list .asset-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.generator-assets-list input[type=checkbox] { accent-color: var(--accent); }
+.generator-assets-list .asset-desc {
+  flex: 1;
+  min-width: 0;
+  appearance: none;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  transition: var(--transition);
+}
+.generator-assets-list .asset-desc:hover { background: var(--bg-elev); }
+.generator-assets-list .asset-desc:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--bg-elev);
+}
+.generator-assets-list .asset-desc::placeholder { color: var(--text-muted); font-size: 12px; }
+
+.generator-result {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+}
+.generator-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 13px;
+}
+.generator-meta .badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  color: var(--text-soft);
+}
+.generator-meta .badge.ok    { background: rgba(34,197,94,.12); border-color: rgba(34,197,94,.4); color: #22c55e; }
+.generator-meta .badge.warn  { background: rgba(234,179,8,.12); border-color: rgba(234,179,8,.4); color: #eab308; }
+.generator-meta .badge.error { background: rgba(239,68,68,.12); border-color: rgba(239,68,68,.4); color: #ef4444; }
+.generator-yaml-editor { min-height: 400px; }
+.generator-yaml-editor textarea { min-height: 400px; }
+
+.generator-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.actions-spacer { flex: 1; }
+
+.generator-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-radius: var(--radius-lg);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  z-index: 10;
+}
+.generator-overlay:not([hidden]) { display: flex; }
+[hidden] { display: none !important; }
+.overlay-spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid rgba(255,255,255,0.2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.overlay-text {
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 500;
+  text-align: center;
+}
+.overlay-text .muted { font-size: 12px; font-weight: 400; }
+.overlay-cancel {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(0,0,0,0.4);
+}
+.overlay-cancel:hover { background: rgba(239,68,68,0.7); }
