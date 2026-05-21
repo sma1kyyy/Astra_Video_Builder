@@ -43,7 +43,22 @@ def _build_chrome_options() -> ChromeOptions:
     options.add_argument("--kiosk")
     options.add_argument(f"user-agent={_USER_AGENT}")
     options.add_argument("--disable-blink-features=AutomationControlled")
+    options.add_argument("--disable-notifications")
+    options.add_argument("--disable-popup-blocking")
+    options.add_argument("--no-first-run")
+    options.add_argument("--no-default-browser-check")
+    options.add_argument("--disable-infobars")
+    options.add_argument("--disable-features=WidevineCdmComponent,MediaRouter,AutofillServerCommunication,Translate,InterestFeedContentSuggestions")
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    options.add_experimental_option("prefs", {
+        "profile.default_content_setting_values.notifications": 2,
+        "profile.default_content_setting_values.media_stream": 2,
+        "profile.default_content_setting_values.geolocation": 2,
+        "profile.default_content_setting_values.protected_media_identifier": 2,
+        "credentials_enable_service": False,
+        "profile.password_manager_enabled": False,
+        "translate.enabled": False,
+    })
     return options
 
 
@@ -53,6 +68,22 @@ def _build_firefox_options() -> FirefoxOptions:
     options.set_preference("general.useragent.override", _USER_AGENT)
     options.set_preference("dom.webdriver.enabled", False)
     options.set_preference("useAutomationExtension", False)
+    options.set_preference("media.eme.enabled", False)
+    options.set_preference("media.gmp-widevinecdm.enabled", False)
+    options.set_preference("media.gmp-widevinecdm.visible", False)
+    options.set_preference("media.autoplay.default", 5)
+    options.set_preference("dom.webnotifications.enabled", False)
+    options.set_preference("dom.push.enabled", False)
+    options.set_preference("permissions.default.desktop-notification", 2)
+    options.set_preference("permissions.default.geo", 2)
+    options.set_preference("geo.enabled", False)
+    options.set_preference("browser.translations.enable", False)
+    options.set_preference("signon.rememberSignons", False)
+    options.set_preference("browser.shell.checkDefaultBrowser", False)
+    options.set_preference("browser.startup.homepage_override.mstone", "ignore")
+    options.set_preference("browser.aboutwelcome.enabled", False)
+    options.set_preference("datareporting.policy.firstRunURL", "")
+    options.set_preference("app.normandy.first_run", False)
     return options
 
 

@@ -274,13 +274,23 @@ def _build_options_addendum(req: GenerateRequest) -> str:
             "Озвучка ОТКЛЮЧЕНА: НЕ добавляй поля `tts`, `voice`, `subtitles`, `subtitle_style`, "
             "`subtitle_font_size`, `subtitle_max_chars`, `subtitle_bg_opacity`, `subplace` ни в одну сцену."
         )
-    elif req.subtitles == "off":
-        notes.append(
-            "Субтитры ОТКЛЮЧЕНЫ: НЕ добавляй поля `subtitles`, `subtitle_style`, `subtitle_font_size`, "
-            "`subtitle_max_chars`, `subtitle_bg_opacity`, `subplace`. Озвучка (`tts`, `voice`) остаётся."
-        )
-    if not notes:
-        return ""
+    else:
+        if req.subtitles == "on":
+            notes.append(
+                "Субтитры ВКЛЮЧЕНЫ: для КАЖДОЙ сцены, где есть `tts`, обязательно добавляй "
+                "`subtitles: true` и `subtitle_style: classic` (или другой подходящий стиль). "
+                "Без этого субтитры не будут показаны."
+            )
+        else:
+            notes.append(
+                "Субтитры ОТКЛЮЧЕНЫ: НЕ добавляй поля `subtitles`, `subtitle_style`, `subtitle_font_size`, "
+                "`subtitle_max_chars`, `subtitle_bg_opacity`, `subplace`. Озвучка (`tts`, `voice`) остаётся."
+            )
+    notes.append(
+        "ВАЖНО: длина `tts` в одной сцене НЕ ДОЛЖНА превышать 200 символов. "
+        "Если текст для озвучки длинный — разбей его на НЕСКОЛЬКО сцен по смыслу, "
+        "каждая со своим коротким tts."
+    )
     return "ДОПОЛНИТЕЛЬНЫЕ ОГРАНИЧЕНИЯ:\n" + "\n".join(f"- {n}" for n in notes)
 
 

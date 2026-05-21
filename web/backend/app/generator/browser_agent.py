@@ -68,8 +68,23 @@ def _build_options(headless: bool) -> ChromeOptions:
     opts.add_argument("--disable-gpu")
     opts.add_argument("--disable-blink-features=AutomationControlled")
     opts.add_argument("--window-size=1280,900")
+    opts.add_argument("--disable-notifications")
+    opts.add_argument("--disable-popup-blocking")
+    opts.add_argument("--no-first-run")
+    opts.add_argument("--no-default-browser-check")
+    opts.add_argument("--disable-infobars")
+    opts.add_argument("--disable-features=WidevineCdmComponent,MediaRouter,AutofillServerCommunication,Translate,InterestFeedContentSuggestions")
     opts.add_experimental_option("excludeSwitches", ["enable-automation"])
     opts.add_experimental_option("useAutomationExtension", False)
+    opts.add_experimental_option("prefs", {
+        "profile.default_content_setting_values.notifications": 2,
+        "profile.default_content_setting_values.media_stream": 2,
+        "profile.default_content_setting_values.geolocation": 2,
+        "profile.default_content_setting_values.protected_media_identifier": 2,
+        "credentials_enable_service": False,
+        "profile.password_manager_enabled": False,
+        "translate.enabled": False,
+    })
     return opts
 
 

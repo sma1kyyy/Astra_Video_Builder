@@ -27,7 +27,8 @@ class SceneObject(ComponentObject):
     )
     tts: str = Field(
         default="",
-        description="Текст TTS (если нужен)."
+        description="Текст TTS (если нужен). Максимум 200 символов на сцену.",
+        max_length=200,
     )
     voice: Literal["jane", "zahar"] = Field(
         default="jane",
@@ -51,7 +52,7 @@ class SceneObject(ComponentObject):
         ge=16
     )
     subtitle_max_chars: int = Field(
-        default=90,
+        default=250,
         description="Максимальное кол-во символов в субтитрах за раз.",
         ge=20
     )
