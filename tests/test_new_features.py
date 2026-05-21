@@ -284,9 +284,9 @@ class TestSubplacePositioning:
         """Извлекает Y-позицию субтитров через mock."""
         from unittest.mock import patch, MagicMock
 
-        with patch("engines.screenshot.screenshot_engine.TextClip") as MockText, \
-             patch("engines.screenshot.screenshot_engine.ColorClip") as MockColor, \
-             patch("engines.screenshot.screenshot_engine.vfx"):
+        with patch("core.utils.subtitles.TextClip") as MockText, \
+             patch("core.utils.subtitles.ColorClip") as MockColor, \
+             patch("core.utils.subtitles.vfx"):
 
             # TextClip mock
             text_instance = MagicMock()

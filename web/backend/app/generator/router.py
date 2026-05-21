@@ -274,7 +274,7 @@ def _build_options_addendum(req: GenerateRequest) -> str:
             "Озвучка ОТКЛЮЧЕНА: НЕ добавляй поля `tts`, `voice`, `subtitles`, `subtitle_style`, "
             "`subtitle_font_size`, `subtitle_max_chars`, `subtitle_bg_opacity`, `subplace` ни в одну сцену."
         )
-    elif req.mode == "screenshot" and req.subtitles == "off":
+    elif req.subtitles == "off":
         notes.append(
             "Субтитры ОТКЛЮЧЕНЫ: НЕ добавляй поля `subtitles`, `subtitle_style`, `subtitle_font_size`, "
             "`subtitle_max_chars`, `subtitle_bg_opacity`, `subplace`. Озвучка (`tts`, `voice`) остаётся."

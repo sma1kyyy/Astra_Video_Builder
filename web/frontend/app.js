@@ -616,7 +616,7 @@ function syncGeneratorModeFields() {
   $("#generator-live-fields").hidden = mode !== "live";
   $("#generator-screenshot-fields").hidden = mode !== "screenshot";
   $("#generator-browser-wrap").hidden = mode !== "live";
-  $("#generator-subtitles-wrap").hidden = mode !== "screenshot";
+  $("#generator-subtitles-wrap").hidden = false;
   syncAssetsCardVisibility();
   updateTaskPlaceholder();
   if (mode === "screenshot") refreshGeneratorAssets();

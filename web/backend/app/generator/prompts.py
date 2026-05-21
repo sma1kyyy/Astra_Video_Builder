@@ -84,6 +84,12 @@ acts:
         duration: <float, секунды>     # обязательно
         tts: <строка, текст для озвучки>
         voice: zahar | jane
+        subtitles: true|false              # опционально, по умолчанию false
+        subtitle_style: classic|minimal|contrast|cinematic
+        subtitle_font_size: <int, по умолчанию 40>
+        subtitle_max_chars: <int, по умолчанию 96>
+        subtitle_bg_opacity: <float 0..1>
+        subplace: up|center|down            # позиция субтитров
         actions:                       # ОБЯЗАТЕЛЬНО первое действие первой сцены — type: navigate
           action_1:
             type: navigate | click | input | wait | scrollUp | scrollDown | scrollTo

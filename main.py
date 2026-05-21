@@ -131,6 +131,7 @@ def _run_live_mode(video, output_dir: str) -> str | None:
                     video.metadata.title,
                     scene_times,
                     save_files=video.metadata.save_files,
+                    scene_objects=all_scenes,
                 )
                 log.info("Видео успешно сохранено: %s", final_path)
             except FileNotFoundError as exc:
