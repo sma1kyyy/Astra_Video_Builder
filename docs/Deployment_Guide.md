@@ -9,15 +9,16 @@
 
 ## Требования
 
-| Компонент           | Версия           | Обязателен для            |
-| ------------------- | ---------------- | ------------------------- |
-| Python              | 3.13+            | всё                       |
-| uv                  | любая актуальная | всё                       |
-| ffmpeg              | 5.0+             | оба режима                |
-| tesseract           | 4.0+             | smart-аннотации (OCR)     |
-| gpu-screen-recorder | любая            | Live Recording на Wayland |
-| Docker + Compose    | 24+ / 2.20+      | веб-сервис                |
-| Chrome или Firefox  | актуальная       | Live Recording            |
+| Компонент           | Версия           | Обязателен для                                                  |
+| ------------------- | ---------------- | --------------------------------------------------------------- |
+| Python              | 3.13+            | всё                                                             |
+| uv                  | любая актуальная | всё                                                             |
+| ffmpeg              | 5.0+             | оба режима                                                      |
+| tesseract           | 4.0+             | smart-аннотации (OCR), AI-генератор (screenshot)                |
+| gpu-screen-recorder | любая            | Live Recording на Wayland                                       |
+| Docker + Compose    | 24+ / 2.20+      | веб-сервис                                                      |
+| Chrome или Firefox  | актуальная       | Live Recording, AI-генератор для live mode (headless)           |
+| LLM API ключ        | OpenAI-совместимый | AI-генератор (если фича нужна)                                |
 
 ---
 
@@ -283,13 +284,18 @@ uv run python main.py -o output --task-id <task_id>
 
 ## Переменные окружения
 
-| Переменная              | По умолчанию           | Описание                                                           |
-| ----------------------- | ---------------------- | ------------------------------------------------------------------ |
-| `YANDEX_API_KEY`        | —                      | API-ключ Yandex SpeechKit. Обязателен только при использовании TTS |
-| `AA_LOG_LEVEL`          | `INFO`                 | Уровень логирования: `DEBUG`, `INFO`, `WARNING`, `ERROR`           |
-| `CELERY_BROKER_URL`     | `redis://redis:6379/0` | URL брокера Celery                                                 |
-| `CELERY_RESULT_BACKEND` | `redis://redis:6379/1` | URL backend Celery для хранения статусов                           |
-| `AAVB_WORK_DIR`         | `web/backend/_work`    | Рабочий каталог веб-сервиса (ассеты, скрипты, output)              |
+| Переменная              | По умолчанию              | Описание                                                                                       |
+| ----------------------- | ------------------------- | ---------------------------------------------------------------------------------------------- |
+| `YANDEX_API_KEY`        | —                         | API-ключ Yandex SpeechKit. Обязателен только при использовании TTS                             |
+| `AA_LOG_LEVEL`          | `INFO`                    | Уровень логирования: `DEBUG`, `INFO`, `WARNING`, `ERROR`                                       |
+| `CELERY_BROKER_URL`     | `redis://redis:6379/0`    | URL брокера Celery                                                                             |
+| `CELERY_RESULT_BACKEND` | `redis://redis:6379/1`    | URL backend Celery для хранения статусов                                                       |
+| `AAVB_WORK_DIR`         | `web/backend/_work`       | Рабочий каталог веб-сервиса (ассеты, скрипты, output)                                          |
+| `LLM_API_KEY`           | —                         | API-ключ LLM-провайдера для AI-генератора. Без него endpoint `/api/generator/generate` → 503  |
+| `LLM_BASE_URL`          | `https://api.openai.com/v1` | OpenAI-совместимый base URL                                                                  |
+| `LLM_MODEL`             | `gpt-4o-mini`             | Модель. Рекомендуется `claude-opus-4.7` через OpenAI-совместимый прокси                       |
+| `LLM_VISION_ENABLED`    | `false`                   | Резерв на будущее (Vision-LLM по скриншотам)                                                   |
+| `GENERATOR_RATE_LIMIT`  | `10/minute`               | slowapi-формат, лимит на endpoint `/api/generator/generate`                                    |
 
 ---
 

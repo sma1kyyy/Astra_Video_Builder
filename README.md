@@ -5,15 +5,18 @@
 
 **В ключевые особенности входит:**
 - Поддержка двух режимов записи: Live Recording и Screenshot Mode
-- Функционал для воспроизведения аудио с использованием TTS и субтитров к нему
+- Функционал для воспроизведения аудио с использованием TTS и субтитров к нему (работают в обоих режимах)
 - Множество эффектов монтажа, такие как переходы между кадрами, наложение различных изображений или вставка музыки
 - HTTP-сервис в `web/` (FastAPI + статический фронт-конструктор) для запуска screenshot mode из браузера. Запуск: `docker compose up --build`. Подробности — в [Screenshot Mode Guide §11](docs/Screenshot_Mode_Guide.md) и [API Reference](docs/API_Reference.md).
+- **AI-генератор YAML-скриптов** (карточка «AI-генератор» во фронтенде или `POST /api/generator/generate`): описываете сценарий словами, LLM возвращает готовый YAML. Для live mode под капотом поднимается headless Chrome, LLM реально проходит сценарий через tool-calling и проверяет селекторы перед возвратом. Для screenshot mode подключается OCR. Требует `LLM_API_KEY` в `.env` — см. [API Reference §AI-генератор](docs/API_Reference.md#ai-генератор-yaml-скриптов).
 
 # Как использовать
 ## Необходимые требования к окружению
 - [Python версии 3.13+](https://www.python.org/downloads/release/python-31311/)
 - [Пакетный менеджер UV для установки зависимостей](https://docs.astral.sh/uv/getting-started/installation/)
 - [FFMPEG](https://www.ffmpeg.org/) — нужен и для Live Recording, и для Screenshot Mode (под капотом MoviePy вызывает ffmpeg при сборке итогового видео).
+- [tesseract](https://github.com/tesseract-ocr/tesseract) (`tesseract-ocr` + `tesseract-ocr-rus`) — для smart-аннотаций и для OCR-контекста AI-генератора. Без него AI-генератор работает, но без распознавания текста на скриншотах.
+- (Опционально) `LLM_API_KEY` в `.env` — для AI-генератора. Поддерживается любой OpenAI-совместимый провайдер; по умолчанию — `gpt-4o-mini`, рекомендуется `claude-opus-4.7` через прокси. Полный список переменных: [Deployment Guide §Переменные окружения](docs/Deployment_Guide.md#переменные-окружения).
 ##### Дополнительно для режима Live Recording
 - [Утилита gpu-screen-recorder для записи Wayland-сессий](https://git.dec05eba.com/gpu-screen-recorder/)
 

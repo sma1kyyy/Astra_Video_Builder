@@ -97,6 +97,72 @@ docker compose up -d redis worker
 - `POST /api/jobs/{id}/cancel` — отменить queued/running задачу.
 - `GET  /api/jobs/{id}/files/{name}` — скачать файл из output-каталога задачи.
 
+### AI-генератор YAML-скриптов
+Использует LLM (по умолчанию `claude-opus-4.7` через OpenAI-совместимый API) для генерации YAML по текстовому описанию. Для live mode дополнительно поднимает headless Chrome и даёт LLM tool-calling доступ к нему для разведки сайта. См. также `docs/Live_Recording_Mode_Guide.md` и `docs/Screenshot_Mode_Guide.md`.
+
+- `GET  /api/generator/status` — состояние генератора: `{llm_configured, llm_model, vision_enabled, ocr_available, rate_limit}`.
+- `POST /api/generator/analyze-asset` — синхронный OCR одного изображения с кэшем по sha256. Тело: `{filename: "shot.png"}`. Ответ: `{filename, cached, items_count, items}`. 503 если tesseract недоступен, 404 если ассет не найден.
+- `POST /api/generator/generate` — основной endpoint. Синхронный (live занимает 1-3 минуты). Rate limit задаётся `GENERATOR_RATE_LIMIT` (default `10/minute`). 503 если `LLM_API_KEY` пустой.
+
+#### GenerateRequest
+```jsonc
+{
+  "mode": "live|screenshot",    // обязательно
+  "task": "...",                // описание сценария, 1..5000 символов
+  // Live mode:
+  "start_url": "https://...",   // обязателен для live, http:// или https://
+  "browser": "chrome|firefox",
+  // Screenshot mode:
+  "asset_filenames": ["a.png"], // обязателен для screenshot, файлы должны быть в /api/assets
+  "asset_descriptions": {"a.png": "что показано"},
+  // Общие:
+  "voice": "jane|zahar|off",
+  "subtitles": "on|off",
+  "language": "ru|en",
+  "resolution": "1920x1080",
+  "fps": 30,                    // 1..120
+  // Тюнинг агента (только live, опционально):
+  "max_iterations": 20,         // 1..50
+  "total_timeout": 240          // секунды, 0..600
+}
+```
+
+#### GenerateResponse
+```jsonc
+{
+  "yaml_script": "...",         // готовый YAML
+  "mode": "live|screenshot",
+  "valid": true,                // прошёл ли через core.parser
+  "parse_error": null,          // строка с ошибкой если valid=false
+  // Live-only поля (агент с tool-calling):
+  "iterations": 5,
+  "exploration_incomplete": false,
+  "verification_passed": true,  // YAML проигран в живом браузере без ошибок
+  "verification_attempts": 1,
+  "verification_issues": null,
+  "timed_out": false,
+  "hit_iteration_limit": false,
+  // Screenshot-only:
+  "ocr_used": true,
+  "self_correction_used": false, // был ли retry при невалидном YAML
+  "notes": null
+}
+```
+
+#### Переменные окружения
+- `LLM_API_KEY` — обязателен. Без него endpoint возвращает 503.
+- `LLM_BASE_URL` — default `https://api.openai.com/v1`.
+- `LLM_MODEL` — default `gpt-4o-mini`. Рекомендуется `claude-opus-4.7` через OpenAI-совместимый прокси.
+- `LLM_VISION_ENABLED` — резерв на будущее, default `false`.
+- `GENERATOR_RATE_LIMIT` — slowapi-формат, default `10/minute`.
+
+#### Требования для live mode
+- Chrome / Chromedriver (устанавливается через `webdriver-manager` автоматически)
+- Возможность поднять headless Chrome (в Docker — обычно ок)
+
+#### Требования для screenshot mode
+- `tesseract-ocr` + `tesseract-ocr-rus` для OCR. Без них поле `ocr_used` будет `false`, но генерация всё равно сработает (с худшим качеством).
+
 ### формат ScriptPayload
 ```jsonc
 {
@@ -117,6 +183,7 @@ docker compose up -d redis worker
       "subtitles": false,
       "subtitle_style": "classic|minimal|contrast|cinematic",
       "subtitle_font_size": 40,
+      "subtitle_max_chars": 250,
       "transition": "without|slideRight|slideLeft|slideUp|slideDown|blackout",
       "annotations": [
         {

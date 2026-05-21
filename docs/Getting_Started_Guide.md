@@ -93,7 +93,12 @@ PY
 ```bash
 docker compose up --build
 ```
-Откройте `http://localhost:8000/` — увидите конструктор. Там же можно загрузить скриншоты, нажать «Запустить рендер» и скачать готовый mp4 из списка задач. Подробности — раздел «HTTP API (web-сервис)» в [API Reference](API_Reference.md) и раздел 11 в [Screenshot Mode Guide](Screenshot_Mode_Guide.md).
+Откройте `http://localhost:8000/` — увидите три карточки на главной:
+- **Загрузить YAML** — переход в редактор YAML с готовым скриптом
+- **Конструктор** — ручная сборка screenshot-сценария по блокам
+- **AI-генератор** — генерация YAML по текстовому описанию через LLM. Работает и для screenshot, и для live mode. Требует `LLM_API_KEY` в `.env`.
+
+В каждом из этих режимов есть кнопка «Запустить рендер» (для screenshot — фоновая задача через Celery, видна в drawer задач). Подробности — раздел «HTTP API (web-сервис)» в [API Reference](API_Reference.md) и раздел 11 в [Screenshot Mode Guide](Screenshot_Mode_Guide.md). Конфигурация AI-генератора — [Deployment Guide §Переменные окружения](Deployment_Guide.md#переменные-окружения).
 
 Для Windows (PowerShell):
 ```powershell

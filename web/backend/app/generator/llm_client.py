@@ -32,9 +32,9 @@ class ToolChatResult:
 def _merge_choices(response: Any) -> ToolChatResult:
     """Merge multi-choice tool responses from non-OpenAI providers.
 
-    api.stepanovikov.uno (Claude proxy) returns text and tool_calls in
-    SEPARATE choices, not in one message like the OpenAI spec. We merge
-    them so the rest of the codebase sees a single coherent message.
+    Some Claude-via-OpenAI proxies return text and tool_calls in SEPARATE
+    choices, not in one message like the OpenAI spec. We merge them so the
+    rest of the codebase sees a single coherent message.
     """
     parts: list[str] = []
     calls: list[ToolCall] = []

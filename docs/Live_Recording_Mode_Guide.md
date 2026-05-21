@@ -36,6 +36,12 @@
 
 Для Live Recording в сцене должны присутствовать действия (`actions`). Это именно то, что будет происходить в браузере: куда-то кликнуть, что-то ввести и т. д.
 
+### Субтитры в Live Recording
+Live mode поддерживает те же поля субтитров, что и Screenshot mode: `subtitles`, `subtitle_style`, `subtitle_font_size`, `subtitle_max_chars`, `subtitle_bg_opacity`, `subplace`. Субтитры накладываются на сцену **после** записи экрана через MoviePy. По умолчанию выключены — поставьте `subtitles: true` в нужной сцене с `tts`. Подробности про стили и позиционирование — в [Script Format Specification](Script_Format_Specification.md).
+
+### Скрытые popup'ы браузера
+Перед стартом записи браузер инициализируется с отключёнными уведомлениями, DRM/EME-подсказками (Widevine), запросами на геолокацию, медиа-доступ, автозаполнение пароля, переводчиком и first-run/welcome-страницей. Это сделано для обоих браузеров (Chrome и Firefox), чтобы соответствующие диалоги не попадали в кадр.
+
 ### Поля metadata, важные для Live Recording
 - `mode: live` — режим (default).
 - `browser: chrome | firefox` — выбор браузера.
